@@ -8,7 +8,7 @@ io.o: io.c limits.h structs.h
 	gcc -c io.c -Wall -std=gnu89 -o io.o
 display.o: display.c structs.h
 	gcc -c display.c -Wall -std=gnu89 -o display.o
-powerGraph.o: powerGraph.c structs.h
+powerGraph.o: powerGraph.c structs.h limits.h
 	gcc -c powerGraph.c -Wall -std=gnu89 -o powerGraph.o
 clean:
 	rm *.o

@@ -11,7 +11,7 @@ int main(int argc, char *argv[]){
 	g = loadGraphFromFile("graph");
 	displayGraph(g);
 	freeGraph(g);*/
-	PADIQUE bob;
-	bob = padique(7,3);
+	unsigned int t[] = {0,1,2,3};
+	subSequences(t, 4);
 	return EXIT_SUCCESS;
 }
