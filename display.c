@@ -12,3 +12,19 @@ void displayGraph(const GRAPH* g)
 		printf("\n");
 	}
 }
+
+void displayDn(const DN* dn)
+{
+	unsigned long i,j;
+	for(i = 0 ; i < dn->nbTuples ; i++)
+	{
+		for(j = 0 ; j < dn->n ; j++)
+		{
+			if(j == 0)
+				printf("%d", dn->tuples[i][j]);
+			else
+				printf("-%d", dn->tuples[i][j]);
+		}
+		printf("\n");
+	}
+}

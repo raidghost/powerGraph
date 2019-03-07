@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
 	GRAPH g;
 	g = loadGraphFromFile(argv[1]);
 	displayGraph(&g);
-	generateDn(&g, 2);
+	testHn(&g, 2, 3);
 	freeGraph(&g);
 	return EXIT_SUCCESS;
 }

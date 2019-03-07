@@ -6,6 +6,7 @@
 #include "limits.h"
 #include "io.h"
 #include "tools.h"
+#include "powerGraph.h"
 
 PADIQUE padique(unsigned long n, unsigned char p)
 {
@@ -185,7 +186,7 @@ unsigned int*** subSequences(unsigned int list[], unsigned long length)
 	return subseqs;
 }
 
-bool testHn(GRAPH* g, unsigned int nMax, unsigned int nMin)
+/*bool testHn(GRAPH* g, unsigned int nMax, unsigned int nMin)
 {//This function tests until which nMin <= n <= nMax the hypothesis Hm holds for the graph g.
 	unsigned long i,j;
 	unsigned int n = 2, m = 0;
@@ -222,16 +223,42 @@ bool testHn(GRAPH* g, unsigned int nMax, unsigned int nMin)
 		}
 	}
 	return true;
+}*/
+
+bool testHn(const GRAPH* g, unsigned int nMin, unsigned int nMax)
+{//This function tests until which nMin <= n <= nMax the hypothesis Hm holds for the graph g.
+	unsigned long i,j,k;
+	unsigned int n;
+	DN dnMoins1, dn;
+
+	if(nMax <= 1)
+	//We assume the graph to be non empty and conected.
+		return true;
+	if(nMin < 2)
+		nMin = 2;
+
+	for(n = nMin ; n < nMax ; n++)
+	{
+		dn = generateDn(g, n+1);
+		dnMoins1 = generateDn(g, n);
+		displayDn(&dn);
+		displayDn(&dnMoins1);
+	}
+
+	return true;
 }
 
-DN generateDn(GRAPH* g, unsigned int n)
+DN generateDn(const GRAPH* g, unsigned int n)
 {
-	unsigned long i,j,k,nbNeighbours;
+	unsigned long i,j,k,l,nbNeighbours;
 	unsigned int* dnTmp[ARRAY_MAX_LENGTH];
 	unsigned int *tuple, *tupleTmp;
 	unsigned int*** subSeqTupleTmp = NULL;
 	unsigned long nbTuples = 0;
 	DN dn;
+	dn.n = 0;
+	dn.nbTuples = 0;
+	dn.tuples = NULL;
 
 	tuple = (unsigned int*)malloc(n * sizeof(unsigned int));
 	if(tuple == NULL)
@@ -239,7 +266,6 @@ DN generateDn(GRAPH* g, unsigned int n)
 	for(i = 0 ; i < g->nbVertices ; i++)
 	{
 		nbNeighbours = 0;
-		fflush(stdout);
 		tupleTmp = (unsigned int*)malloc(g->nbVertices * sizeof(unsigned int));
 		if(tupleTmp == NULL)
 			NO_MEM_LEFT()
@@ -255,12 +281,27 @@ DN generateDn(GRAPH* g, unsigned int n)
 		{//If vertex i has strictly more than n neighbours then we have to find all the subsequences of length n of tupleTmp and add it (if not exists) in dnTmp.
 			subSeqTupleTmp = subSequences(tupleTmp, nbNeighbours);
 			//We now add, if needed, the new n-uples to dnTmp
-//------------------------------------ Gérer les doublons ici !
 			unsigned long** bin = binomAll(nbNeighbours);
 			for(j = 0 ; j < bin[nbNeighbours][n] ; j++)
 			{
-				dnTmp[nbTuples] = subSeqTupleTmp[n][j];
-				nbTuples++;
+				bool isSequenceNew = true;
+				for(k = 0 ; k < nbTuples ; k++)
+				{
+					for(l = 0 ; l < n ; l++)
+					{
+						if(dnTmp[k][l] != subSeqTupleTmp[n][j][l])
+							break;
+					}
+					if(l == n)
+					{//The sequence has already been found.
+						isSequenceNew = false;
+					}
+				}
+				if(isSequenceNew)
+				{
+					dnTmp[nbTuples] = subSeqTupleTmp[n][j];
+					nbTuples++;
+				}
 			}
 			//We free useless memory
 			for(j = 0 ; j < n - 1 ; j++)
@@ -292,11 +333,7 @@ DN generateDn(GRAPH* g, unsigned int n)
 		if(dn.tuples[i] == NULL)
 			NO_MEM_LEFT()
 		for(j = 0 ; j < n ; j++)
-		{
 			dn.tuples[i][j] = dnTmp[i][j];
-			printf("%d-", dnTmp[i][j]);
-		}
-		printf("\n");
 	}
 	return dn;
 }

@@ -12,6 +12,8 @@ powerGraph.o: powerGraph.c structs.h limits.h tools.h
 	gcc -c powerGraph.c -Wall -Wextra -std=gnu89 -o powerGraph.o
 tools.o: tools.c
 	gcc -c tools.c -Wall -Wextra -std=gnu89 -o tools.o
+#rankF2.o: rankF2.c rankF2.h
+#	gcc -c rankF2.c -Wall -Wextra -std=gnu89 -o rankF2.o
 clean:
 	rm *.o
 	rm main
