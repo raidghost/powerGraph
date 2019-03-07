@@ -230,6 +230,7 @@ bool testHn(const GRAPH* g, unsigned int nMin, unsigned int nMax)
 	unsigned long i,j,k;
 	unsigned int n;
 	DN dnMoins1, dn;
+	MATRIX mN;
 
 	if(nMax <= 1)
 	//We assume the graph to be non empty and conected.
@@ -243,8 +244,23 @@ bool testHn(const GRAPH* g, unsigned int nMin, unsigned int nMax)
 		dnMoins1 = generateDn(g, n);
 		displayDn(&dn);
 		displayDn(&dnMoins1);
+		mN.nbRows = dnMoins1.nbTuples;
+		mN.nbColumns = dn.nbTuples;
+		mN.mat = (char**)malloc(mN.nbColumns * sizeof(char*));
+		if(mN.mat == NULL)
+			NO_MEM_LEFT()
+		for(i = 0 ; i < mN.nbColumns ; i++)
+		{
+			mN.mat[i] = (char*)malloc(mN.nbRows * sizeof(char));
+			if(mN.mat[i] == NULL)
+				NO_MEM_LEFT()
+		}
 	}
 
+	//We free the useless memory.
+	for(i = 0 ; i < mN.nbColumns ; i++)
+		free(mN.mat[i]);
+	free(mN.mat);
 	return true;
 }
 
@@ -334,6 +350,14 @@ DN generateDn(const GRAPH* g, unsigned int n)
 			NO_MEM_LEFT()
 		for(j = 0 ; j < n ; j++)
 			dn.tuples[i][j] = dnTmp[i][j];
+	}
+	if(dn.nbTuples >= 2)
+	{
+		displayDn(&dn);
+		printf("\ntri\n");
+		sortDn(dn, 0, dn.nbTuples - 1);
+		displayDn(&dn);
+		printf("\n\n");
 	}
 	return dn;
 }
