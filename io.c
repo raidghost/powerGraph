@@ -5,6 +5,7 @@
 
 #include "limits.h"
 #include "structs.h"
+#include "io.h"
 
 int string2Int(const char *string){
 	/*Convert a string to an integer in basis 10.*/
@@ -46,10 +47,8 @@ GRAPH loadGraphFromFile(char *fileName){
 	}
 	for(i = 0 ; i < g.nbVertices ; i++){
 		g.mat[i] = (char*)malloc(g.nbVertices * sizeof(char));
-		if(g.mat[i] == NULL){
-			fprintf(stderr, "No memory left.\n");
-			exit(EXIT_FAILURE);
-		}
+		if(g.mat[i] == NULL)
+			NO_MEM_LEFT()
 	}
 
 	while(fscanf(file, "%s\n", line) != EOF){

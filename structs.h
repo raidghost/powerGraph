@@ -27,4 +27,12 @@ struct MATRIX
 	char** mat;
 };
 
+typedef struct DN DN;
+struct DN
+{
+	unsigned int n;
+	unsigned long nbTuples;
+	unsigned char** tuples;
+};
+
 #endif

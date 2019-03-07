@@ -4,6 +4,7 @@
 
 #include "structs.h"
 #include "limits.h"
+#include "io.h"
 
 PADIQUE padique(unsigned long n, unsigned char p)
 {
@@ -87,56 +88,42 @@ unsigned int** subSequences(unsigned int list[], unsigned long length)
 	for(i = 0 ; i < length ; i++)
 	{
 		//We know exactly the number of subsequences of size i.
-/*		subseqs[i] = (unsigned int**)malloc(binom[length][i] * sizeof(unsigned int*));
+		subseqs[i] = (unsigned int**)malloc(binom[length][i] * sizeof(unsigned int*));
 		if(subseqs[i] == NULL)
-		{
-			fprintf(stderr, "No memory left.\n");
-			exit(EXIT_FAILURE);
-		}
+			NO_MEM_LEFT()
 		for(j = 0 ; j < binom[length][i] ; j++)
 		{
 			subseqs[i][j] = (unsigned int*)malloc((i+1) * sizeof(unsigned int));
 			if(subseqs[i][j] == NULL)
-			{
-				fprintf(stderr, "No memory left.\n");
-				exit(EXIT_FAILURE);
-			}
-		}*/
+				NO_MEM_LEFT()
+		}
+
 		if(i == 0)
 		{//There is one subsequence of size 0 : the empty subsequence.
 			subseqs[0] = (unsigned int**)malloc(sizeof(unsigned int*));
 			if(subseqs[0] == NULL)
-			{
-				fprintf(stderr, "No memory left.\n");
-				exit(EXIT_FAILURE);
-			}
+				NO_MEM_LEFT()
 			subseqs[0][0] = NULL;
 		}
 		else if(i == 1)
 		{
 			subseqs[1] = (unsigned int**)malloc(length * sizeof(unsigned int*));
 			if(subseqs[1] == NULL)
-			{
-				fprintf(stderr, "No memory left.\n");
-				exit(EXIT_FAILURE);
-			}
+				NO_MEM_LEFT()
 			for(j = 0 ; j < length ; j++)
 			{
 				subseqs[1][j] = (unsigned int*)malloc(sizeof(unsigned int));
 				if(subseqs[1][j] == NULL)
-				{
-					fprintf(stderr, "No memory left.\n");
-					exit(EXIT_FAILURE);
-				}
+					NO_MEM_LEFT()
 				subseqs[1][j][0] = list[j];
 			}
 		}
 		else
 		{
 			//We look at every subsequences of size i-1.
+			unsigned int nbNewSubSeqs = 0;
 			for(j = 0 ; j < binom[length][i-1] ; j++)
 			{
-				unsigned int nbNewSubSeqs = 0;
 				//We look for an element which is not in subseqs[i-1][j].
 				for(k = 0 ; k < length ; k++)
 				{
@@ -148,13 +135,11 @@ unsigned int** subSequences(unsigned int list[], unsigned long length)
 					if(l == i-1)
 					{//list[k] is not in subseqs[i-1][j]
 						unsigned int a,b;
-						l = 0;
-						newSubSeq = (unsigned int*)malloc(i * sizeof(unsigned int));
+						newSubSeq = (unsigned int*)malloc((i+1) * sizeof(unsigned int));
 						if(newSubSeq == NULL)
-						{
-							fprintf(stderr, "No memory left.\n");
-							exit(EXIT_FAILURE);
-						}
+							NO_MEM_LEFT()
+						//Now we insert list[k] at the appropriate position in subseqs[i-1][j]
+						l = 0;
 						while(list[k] < subseqs[i-1][j][l])
 						{
 							newSubSeq[l] = subseqs[i-1][j][l];
@@ -167,7 +152,9 @@ unsigned int** subSequences(unsigned int list[], unsigned long length)
 							newSubSeq[l] = subseqs[i-1][j][l-1];
 							l++;
 						}
-						//We must now check that the sequence obtained by adding list[k] to subseqs[i-1][j] is not already in subseqs[i].
+
+						//We must now check that the sequence obtained by adding list[k] to subseqs[i-1][j] (that is newSubSeq) is not already in subseqs[i].
+						bool subSeqExists = false;
 						for(a = 0 ; a < nbNewSubSeqs ; a++)
 						{
 							for(b = 0 ; b < i ; b++)
@@ -176,11 +163,13 @@ unsigned int** subSequences(unsigned int list[], unsigned long length)
 									break;
 							}
 							if(b == i)
-							//If the subsequences are the same
+							{//If the subsequences are the same
+								subSeqExists = true;
 								break;
+							}
 						}
-						if(a < nbNewSubSeqs)
-						{//If this is a newSequence
+						if(!subSeqExists)
+						{
 							subseqs[i][nbNewSubSeqs] = newSubSeq;
 							nbNewSubSeqs++;
 						}
@@ -192,7 +181,7 @@ unsigned int** subSequences(unsigned int list[], unsigned long length)
 	}
 	for(i = 0 ; i < length ; i++)
 	{
-		for(j = 1 ; j < binom[length][i] ; j++)
+		for(j = 0 ; j < binom[length][i] ; j++)
 		{
 			for(k = 0 ; k < i ; k++)
 				printf("%d-", subseqs[i][j][k]);
@@ -204,7 +193,7 @@ unsigned int** subSequences(unsigned int list[], unsigned long length)
 }
 
 bool testHn(GRAPH g, unsigned int nMax, unsigned int nMin)
-{//This function test until which n <= nMax (starting at nMin) the hypothesis Hm holds for the graph g.
+{//This function tests until which nMin <= n <= nMax the hypothesis Hm holds for the graph g.
 	unsigned long i,j;
 	unsigned int n = 2, m = 0;
 	unsigned int* listDom = NULL;
@@ -243,4 +232,34 @@ bool testHn(GRAPH g, unsigned int nMax, unsigned int nMin)
 		}
 	}
 	return true;
+}
+
+unsigned char** generateDn(GRAPH g, unsigned int n)
+{
+	unsigned long i,j,nbNeighbours;
+	unsigned char* dnTmp[ARRAY_MAX_LENGTH] = {NULL};
+	unsigned char* tuple = NULL;
+	unsigned char tupleTmp[ARRAY_MAX_LENGTH] = {0};
+	unsigned long nbTuples = 0;
+	DN dn;
+
+	tuple = (unsigned char*)malloc(n * sizeof(unsigned char));
+	if(tuple == NULL)
+		NO_MEM_LEFT()
+	for(i = 0 ; i < g.nbVertices ; i++)
+	{
+		nbNeighbours = 0;
+		for(j = 0 ; j < g.nbVertices ; j++)
+		{
+			if(g.nbVertices == 1)
+			{
+				tupleTmp[nbNeighbours] = j;
+				nbNeighbours++;
+			}
+		}
+		if(nbNeighbours >= n)
+		{//If vertex i has at least n neighbours then we can find all the subsequences of length n of tupleTmp and add it (if not exists) in dnTmp.
+			printf("foo");
+		}
+	}
 }
