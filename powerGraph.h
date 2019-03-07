@@ -4,7 +4,8 @@
 #include "structs.h"
 
 PADIQUE padique(unsigned long n, unsigned char p);
-unsigned int** subSequences(unsigned int list[], unsigned long length);
-bool testHn(GRAPH g, unsigned int nMax, unsigned int nMin);
+unsigned int*** subSequences(unsigned int list[], unsigned long length);
+bool testHn(GRAPH* g, unsigned int nMax, unsigned int nMin);
+DN generateDn(GRAPH* g, unsigned int n);
 
 #endif

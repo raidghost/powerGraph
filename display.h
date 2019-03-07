@@ -2,5 +2,5 @@
 #define DISPLAY
 #include <stdio.h>
 
-void displayGraph(const GRAPH g);
+void displayGraph(const GRAPH* g);
 #endif

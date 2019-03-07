@@ -32,7 +32,7 @@ struct DN
 {
 	unsigned int n;
 	unsigned long nbTuples;
-	unsigned char** tuples;
+	unsigned int** tuples;
 };
 
 #endif

@@ -5,6 +5,7 @@
 #include "structs.h"
 #include "limits.h"
 #include "io.h"
+#include "tools.h"
 
 PADIQUE padique(unsigned long n, unsigned char p)
 {
@@ -44,11 +45,11 @@ PADIQUE padique(unsigned long n, unsigned char p)
 }
 
 
-unsigned int** subSequences(unsigned int list[], unsigned long length)
+unsigned int*** subSequences(unsigned int list[], unsigned long length)
 {//Computes all the strict subsequences of a list without doublons !
 	unsigned int*** subseqs = NULL;
 	unsigned int* newSubSeq = NULL;
-	unsigned long i,j,k,l,m;
+	unsigned long i,j,k,l;
 	unsigned long** binom = NULL;
 
 	subseqs = (unsigned int***)malloc(length * sizeof(unsigned int**));
@@ -56,20 +57,13 @@ unsigned int** subSequences(unsigned int list[], unsigned long length)
 	newSubSeq = (unsigned int*)malloc((length+1) * sizeof(unsigned int));
 
 	if(subseqs == NULL || binom == NULL || newSubSeq == NULL)
-	{
-		fprintf(stderr, "No memory left.\n");
-		exit(EXIT_FAILURE);
-	}
-
+		NO_MEM_LEFT()
 	//We compute the usefull binomial coefficients.
 	for(i = 0 ; i <= length ; i++)
 	{
 		binom[i] = (unsigned long*)malloc((i+1) * sizeof(unsigned long));
 		if(binom[i] == NULL)
-		{
-			fprintf(stderr, "No memory left.\n");
-			exit(EXIT_FAILURE);
-		}
+			NO_MEM_LEFT()
 	}
 
 	for(i = 0 ; i <= length ; i++)
@@ -174,12 +168,11 @@ unsigned int** subSequences(unsigned int list[], unsigned long length)
 							nbNewSubSeqs++;
 						}
 					}
-					printf("i = %d et nbNewSubSeqs = %d\n", i, nbNewSubSeqs);
 				}
 			}
 		}
 	}
-	for(i = 0 ; i < length ; i++)
+/*	for(i = 0 ; i < length ; i++)
 	{
 		for(j = 0 ; j < binom[length][i] ; j++)
 		{
@@ -188,39 +181,36 @@ unsigned int** subSequences(unsigned int list[], unsigned long length)
 			printf("\n");
 		}
 		printf("\n\n");
-	}
+	}*/
 	return subseqs;
 }
 
-bool testHn(GRAPH g, unsigned int nMax, unsigned int nMin)
+bool testHn(GRAPH* g, unsigned int nMax, unsigned int nMin)
 {//This function tests until which nMin <= n <= nMax the hypothesis Hm holds for the graph g.
 	unsigned long i,j;
 	unsigned int n = 2, m = 0;
 	unsigned int* listDom = NULL;
-	unsigned int** subSeqListDom = NULL;
+	unsigned int*** subSeqListDom = NULL;
 	unsigned long tnMoins1[ARRAY_MAX_LENGTH] = {0}, tn[ARRAY_MAX_LENGTH] = {0};
 	unsigned long tnMoins1Length = 0, tnLength = 0, listDomLength = 0;
 
-	if(g.nbVertices > ARRAY_MAX_LENGTH)
+	if(g->nbVertices > ARRAY_MAX_LENGTH)
 	{
 		fprintf(stderr, "Consider raising ARRAY_MAX_LENGTH.\n");
 		exit(EXIT_FAILURE);
 	}
-	for(i = 0 ; i < g.nbVertices ; i++)
-		tnMoins1[i] = i;
-	tnMoins1Length = g.nbVertices;
 	
-	listDom = (unsigned int*)malloc(g.nbVertices * sizeof(unsigned int));
+	listDom = (unsigned int*)malloc(g->nbVertices * sizeof(unsigned int));
 	if(listDom == NULL)
 	{
 		fprintf(stderr, "No memory left.\n");
 		exit(EXIT_FAILURE);
 	}
-	for(i = 0 ; i < g.nbVertices ; i++)
+	for(i = 0 ; i < g->nbVertices ; i++)
 	{
-		for(j = 0 ; j < g.nbVertices ; j++)
+		for(j = 0 ; j < g->nbVertices ; j++)
 		{
-			if(g.mat[i][j])
+			if(g->mat[i][j])
 			{
 				listDom[listDomLength] = j;
 				m++;
@@ -234,32 +224,79 @@ bool testHn(GRAPH g, unsigned int nMax, unsigned int nMin)
 	return true;
 }
 
-unsigned char** generateDn(GRAPH g, unsigned int n)
+DN generateDn(GRAPH* g, unsigned int n)
 {
-	unsigned long i,j,nbNeighbours;
-	unsigned char* dnTmp[ARRAY_MAX_LENGTH] = {NULL};
-	unsigned char* tuple = NULL;
-	unsigned char tupleTmp[ARRAY_MAX_LENGTH] = {0};
+	unsigned long i,j,k,nbNeighbours;
+	unsigned int* dnTmp[ARRAY_MAX_LENGTH];
+	unsigned int *tuple, *tupleTmp;
+	unsigned int*** subSeqTupleTmp = NULL;
 	unsigned long nbTuples = 0;
 	DN dn;
 
-	tuple = (unsigned char*)malloc(n * sizeof(unsigned char));
+	tuple = (unsigned int*)malloc(n * sizeof(unsigned int));
 	if(tuple == NULL)
 		NO_MEM_LEFT()
-	for(i = 0 ; i < g.nbVertices ; i++)
+	for(i = 0 ; i < g->nbVertices ; i++)
 	{
 		nbNeighbours = 0;
-		for(j = 0 ; j < g.nbVertices ; j++)
+		fflush(stdout);
+		tupleTmp = (unsigned int*)malloc(g->nbVertices * sizeof(unsigned int));
+		if(tupleTmp == NULL)
+			NO_MEM_LEFT()
+		for(j = 0 ; j < g->nbVertices ; j++)
 		{
-			if(g.nbVertices == 1)
+			if(g->mat[i][j] == 1)
 			{
 				tupleTmp[nbNeighbours] = j;
 				nbNeighbours++;
 			}
 		}
-		if(nbNeighbours >= n)
-		{//If vertex i has at least n neighbours then we can find all the subsequences of length n of tupleTmp and add it (if not exists) in dnTmp.
-			printf("foo");
+		if(nbNeighbours > n)
+		{//If vertex i has strictly more than n neighbours then we have to find all the subsequences of length n of tupleTmp and add it (if not exists) in dnTmp.
+			subSeqTupleTmp = subSequences(tupleTmp, nbNeighbours);
+			//We now add, if needed, the new n-uples to dnTmp
+//------------------------------------ Gérer les doublons ici !
+			unsigned long** bin = binomAll(nbNeighbours);
+			for(j = 0 ; j < bin[nbNeighbours][n] ; j++)
+			{
+				dnTmp[nbTuples] = subSeqTupleTmp[n][j];
+				nbTuples++;
+			}
+			//We free useless memory
+			for(j = 0 ; j < n - 1 ; j++)
+			{
+				for(k = 0 ; k < bin[n][j] ; k++)
+					free(subSeqTupleTmp[j][k]);
+			}
+			free(tupleTmp);
+
 		}
+		else if(nbNeighbours == n)
+		{
+			dnTmp[nbTuples] = tupleTmp;
+			nbTuples++;
+		}
+		else
+			free(tupleTmp);
 	}
+
+	//We populate dn
+	dn.n = n;
+	dn.nbTuples = nbTuples;
+	dn.tuples = (unsigned int**)malloc(nbTuples * sizeof(unsigned int*));
+	if(dn.tuples == NULL)
+		NO_MEM_LEFT()
+	for(i = 0 ; i < nbTuples ; i++)
+	{
+		dn.tuples[i] = (unsigned int*)malloc(n * sizeof(unsigned int));
+		if(dn.tuples[i] == NULL)
+			NO_MEM_LEFT()
+		for(j = 0 ; j < n ; j++)
+		{
+			dn.tuples[i][j] = dnTmp[i][j];
+			printf("%d-", dnTmp[i][j]);
+		}
+		printf("\n");
+	}
+	return dn;
 }
