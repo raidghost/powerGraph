@@ -1,31 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <math.h>
 
 #include "limits.h"
 #include "structs.h"
+#include "tools.h"
 #include "io.h"
-
-int string2Int(const char *string)
-{//Convert a string to an integer in basis 10.
-	int result = 0, sign = 1;
-	unsigned int stringLength = strlen(string), i = 0, power10 = 0;
-
-	if(string[0] == '-')
-	{
-		sign = -1;
-		i++;
-	}
-	power10 = pow(10,stringLength-1-i);
-	while(i < stringLength)
-	{
-		result += power10 * (int)(string[i] - '0');
-		power10 /= 10;
-		i++;
-	}
-	return result * sign;
-}
 
 GRAPH loadGraphFromFile(char *fileName)
 {

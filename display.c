@@ -6,7 +6,8 @@
 void displayGraph(const GRAPH* g)
 {
 	unsigned long i,j;
-	for(i = 0 ; i < g->nbVertices ; i++){
+	for(i = 0 ; i < g->nbVertices ; i++)
+	{
 		for(j = 0 ; j < g->nbVertices ; j++)
 			printf("%d ", (int)g->mat[i][j]);
 		printf("\n");
@@ -25,6 +26,17 @@ void displayDn(const DN* dn)
 			else
 				printf("-%d", dn->tuples[i][j]);
 		}
+		printf("\n");
+	}
+}
+
+void displayMatrix(const MATRIX* m)
+{
+	unsigned long i,j;
+	for(i = 0 ; i < m->nbRows ; i++)
+	{
+		for(j = 0 ; j < m->nbColumns ; j++)
+			printf("%d ", (int)m->mat[i][j]);
 		printf("\n");
 	}
 }

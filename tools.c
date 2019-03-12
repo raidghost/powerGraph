@@ -1,9 +1,30 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <math.h>
 
 #include "io.h"
 #include "tools.h"
 
+int string2Int(const char *string)
+{//Convert a string to an integer in basis 10.
+	int result = 0, sign = 1;
+	unsigned int stringLength = strlen(string), i = 0, power10 = 0;
+
+	if(string[0] == '-')
+	{
+		sign = -1;
+		i++;
+	}
+	power10 = pow(10,stringLength-1-i);
+	while(i < stringLength)
+	{
+		result += power10 * (int)(string[i] - '0');
+		power10 /= 10;
+		i++;
+	}
+	return result * sign;
+}
 
 unsigned long binom(unsigned char n, unsigned char k)
 {//Computes n choose k
@@ -53,6 +74,20 @@ bool lex(unsigned int* nuple1, unsigned int* nuple2, unsigned int n)
 	}
 	return false;
 }
+
+int nuplecmp(unsigned int *nuple1, unsigned int *nuple2, unsigned int n)
+{//Returns 0 if nuple1 == nuple2, -1 if nuple1 < nuple2 and +1 if nuple1 > nuple2.
+	unsigned int i;
+	for(i = 0 ; i < n ; i++)
+	{
+		if(nuple1[i] < nuple2[i])
+			return -1;
+		else if(nuple1[i] > nuple2[i])
+			return 1;
+	}
+	return 0;
+}
+
 void sortDn(DN dn, unsigned long begin, unsigned long end)
 {//Sort lexicographically an instance of DN using quicksort.
 	unsigned int* tmp;
@@ -96,5 +131,30 @@ void sortDn(DN dn, unsigned long begin, unsigned long end)
 			sortDn(dn, begin, pivot - 1);
 		if(end >= pivot + 2)
 			sortDn(dn, pivot + 1, end);
+	}
+}
+
+unsigned long dichoSearchDN(const DN *dn, unsigned int *x, unsigned long begin, unsigned long end)
+{//Given a sorted DN, look for x in DN assuming x belongs to dn (undefined behavior if x is not in dn...)
+	if(begin > end || end > dn->nbTuples)
+		return 0;
+	else
+	{
+		unsigned long midle = (end + begin) / 2;
+		int cmp = nuplecmp(x, dn->tuples[midle], dn->n);
+		switch(cmp)
+		{
+			case -1:
+			return dichoSearchDN(dn, x, begin, midle - 1);
+			break;
+
+			case 1:
+			return dichoSearchDN(dn, x, midle + 1, end);
+			break;
+
+			//case 0:
+			default:
+			return midle;
+		}
 	}
 }
