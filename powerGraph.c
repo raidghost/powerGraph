@@ -47,7 +47,7 @@ PADIQUE padique(unsigned long n, unsigned char p)
 	}
 }
 
-unsigned int testHn(const GRAPH* g, unsigned int nMax)
+unsigned int testHn(const GRAPH* g, unsigned int nMax, int verbose)
 {//This function tests until which nMin <= n <= nMax the hypothesis Hm holds for the graph g.
 	bool goOn = true;
 	unsigned long i,j,k;
@@ -62,22 +62,30 @@ unsigned int testHn(const GRAPH* g, unsigned int nMax)
 	//We assume the graph to be non empty and conected.
 		return 1;
 
+	printf("Début\n");
 	dnMoins1 = generateDn(g, 1);
 	rankMnMoins1 = 1;
+	printf("fin\n");
 
 	n = 1;
 	while(n < nMax && goOn)
 	{
-		printf("On teste l'hypothèse H%d.\n", n+1);
+		if(verbose)
+			printf("On teste l'hypothèse H%d.\n\n", n+1);
+
 		//We generate Dn and Dn-1
 		dn = generateDn(g, n+1);
 		if(dn.nbTuples == 0)
 		//We cannot define Dn hence Mn so we abord.
 			break;
-		printf("D%d := \n", n+1);
-		displayDn(&dn);
-		printf("D%d := \n", n);
-		displayDn(&dnMoins1);
+
+		if(verbose >= 2)
+		{
+			printf("D%d := \n\n", n+1);
+			displayDn(&dn);
+			printf("D%d := \n\n", n);
+			displayDn(&dnMoins1);
+		}
 
 		//We create the matrix Mn
 		mN.nbRows = dnMoins1.nbTuples;
@@ -111,11 +119,16 @@ unsigned int testHn(const GRAPH* g, unsigned int nMax)
 			//We free subseq
 			freeSubSequences(subseq, dn.n);
 		}
-		displayMatrix(&mN);
-		printf("\n\n");
+
+		if(verbose >= 3)
+		{
+			displayMatrix(&mN);
+			printf("\n\n");
+		}
 		//Beware, computing the rank changes the matrix !
 		rankMn = rankF2(&mN);
-		printf("Le rang de M%d vaut : %ld\n", n+1, rankMn);
+		if(verbose)
+			printf("Le rang de M%d vaut : %ld\n", n+1, rankMn);
 
 		if(rankMn == dnMoins1.nbTuples - rankMnMoins1)
 		{
@@ -147,21 +160,41 @@ unsigned int testHn(const GRAPH* g, unsigned int nMax)
 
 DN generateDn(const GRAPH* g, unsigned int n)
 {//Returns Dn lexicographically sorted.
+	DN dn;
+	dn.n = 0;
+	dn.nbTuples = 0;
+	dn.tuples = NULL;
+
+	if(n == 1)
+	{//We assume the graph to be connected.
+		dn.n = 1;
+		dn.nbTuples = g->nbVertices;
+		dn.tuples = (unsigned int**)malloc(g->nbVertices * sizeof(unsigned int*));
+		if(dn.tuples == NULL)
+			NO_MEM_LEFT()
+		unsigned long i;
+		for(i = 0 ; i < g->nbVertices ; i++)
+		{
+			dn.tuples[i] = (unsigned int*)malloc(sizeof(unsigned int));
+			if(dn.tuples[i] == NULL)
+				NO_MEM_LEFT()
+			dn.tuples[i][0] = i;
+		}
+		return dn;
+	}
+	
 	unsigned long i,j,k,l,nbNeighbours;
 	unsigned int* dnTmp[ARRAY_MAX_LENGTH];
 	unsigned int *tuple, *tupleTmp;
 	unsigned int*** subSeqTupleTmp = NULL;
 	unsigned long nbTuples = 0;
-	DN dn;
-	dn.n = 0;
-	dn.nbTuples = 0;
-	dn.tuples = NULL;
 
 	tuple = (unsigned int*)malloc(n * sizeof(unsigned int));
 	if(tuple == NULL)
 		NO_MEM_LEFT()
 	for(i = 0 ; i < g->nbVertices ; i++)
 	{
+//		printf("On en est à i = %ld\n", i);
 		nbNeighbours = 0;
 		tupleTmp = (unsigned int*)malloc(g->nbVertices * sizeof(unsigned int));
 		if(tupleTmp == NULL)
@@ -190,9 +223,8 @@ DN generateDn(const GRAPH* g, unsigned int n)
 							break;
 					}
 					if(l == n)
-					{//The sequence has already been found.
+					//The sequence has already been found.
 						isSequenceNew = false;
-					}
 				}
 				if(isSequenceNew)
 				{
@@ -219,6 +251,7 @@ DN generateDn(const GRAPH* g, unsigned int n)
 	}
 
 	//We populate dn
+	printf("peuplage de D%d\n", n);
 	dn.n = n;
 	dn.nbTuples = nbTuples;
 	dn.tuples = (unsigned int**)malloc(nbTuples * sizeof(unsigned int*));
@@ -232,8 +265,19 @@ DN generateDn(const GRAPH* g, unsigned int n)
 		for(j = 0 ; j < n ; j++)
 			dn.tuples[i][j] = dnTmp[i][j];
 	}
+	printf("Fin du peuplage de D%d. Il y a %ld éléments.\n", n, dn.nbTuples);
 	if(dn.nbTuples >= 2)
-		sortDn(dn, 0, dn.nbTuples - 1);
+	{
+		printf("début du tri de D%d\n", n);
+//		displayDn(&dn);
+//		printf("\n\n");
+//		unsigned long nbCalls = sortDn(dn, 0, dn.nbTuples - 1);
+//		printf("fin du tri de D%d en %ld appels\n", n, nbCalls);
+		quickSortDn(&dn);
+		//displayDn(&dn);
+//		fflush(stdout);
+		printf("fin du tri de D%d\n", n);
+	}
 	return dn;
 }
 

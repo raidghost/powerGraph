@@ -35,4 +35,11 @@ struct DN
 	unsigned int** tuples;
 };
 
+typedef struct NUPLE NUPLE;
+struct NUPLE
+{
+	unsigned int length;
+	unsigned int* tab;
+};
+
 #endif

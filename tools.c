@@ -6,6 +6,10 @@
 #include "io.h"
 #include "tools.h"
 
+//Variables globales indispensables pour le quicksort.
+unsigned int n1Length = 0;
+unsigned int n2Length = 0;
+
 int string2Int(const char *string)
 {//Convert a string to an integer in basis 10.
 	int result = 0, sign = 1;
@@ -75,6 +79,54 @@ bool lex(unsigned int* nuple1, unsigned int* nuple2, unsigned int n)
 	return false;
 }
 
+int lexQsort(void const *nuple1, void const *nuple2)
+{
+	NUPLE* n1 = (NUPLE*)nuple1;
+	NUPLE* n2 = (NUPLE*)nuple2;
+	unsigned int i, lengthMax = 0;
+	if(n1->length > n2->length)
+		lengthMax = n1->length;
+	else
+		lengthMax = n2->length;
+	for(i = 0 ; i < lengthMax ; i++)
+	{
+		if(n1->tab[i] < n2->tab[i])
+			return -1;
+		else if(n1->tab[i] > n2->tab[i])
+			return 1;
+	}
+	if(n1->length == n2->length)
+		return 0;
+	else if(n1->length < n2->length)
+		return -1;
+	else
+		return 1;
+}
+/*int lexQsort(void const *nuple1, void const *nuple2)
+{//This function relies on two global variables n1Length and n2Length that must be set before calling it.
+	unsigned int* n1 = (unsigned int*)nuple1;
+	unsigned int* n2 = (unsigned int*)nuple2;
+	unsigned int i, lengthMin = 0;
+	if(n1Length > n2Length)
+		lengthMin = n2Length;
+	else
+		lengthMin = n1Length;
+	for(i = 0 ; i < lengthMin ; i++)
+	{
+		if(n1[i] < n2[i])
+			return -1;
+		else if(n1[i] > n2[i])
+			return 1;
+	}
+	if(n1Length == n2Length)
+		return 0;
+	else if(n1Length < n2Length)
+		return -1;
+	else
+		return 1;
+}*/
+
+
 int nuplecmp(unsigned int *nuple1, unsigned int *nuple2, unsigned int n)
 {//Returns 0 if nuple1 == nuple2, -1 if nuple1 < nuple2 and +1 if nuple1 > nuple2.
 	unsigned int i;
@@ -88,11 +140,13 @@ int nuplecmp(unsigned int *nuple1, unsigned int *nuple2, unsigned int n)
 	return 0;
 }
 
-void sortDn(DN dn, unsigned long begin, unsigned long end)
-{//Sort lexicographically an instance of DN using quicksort.
+unsigned long sortDn(DN dn, unsigned long begin, unsigned long end)
+{//Sort lexicographically an instance of DN using quicksort and returns the number of recursives calls used.
+	static unsigned long nbCalls = 0;
+	nbCalls++;
 	unsigned int* tmp;
 	if(end - begin <= 0)
-		return;
+		return nbCalls;
 	else if(end - begin == 1)
 	{
 		if(lex(dn.tuples[end],dn.tuples[begin],dn.n))
@@ -101,6 +155,7 @@ void sortDn(DN dn, unsigned long begin, unsigned long end)
 			dn.tuples[begin] = dn.tuples[end];
 			dn.tuples[end] = tmp;
 		}
+		return nbCalls;
 	}
 	else
 	{
@@ -131,6 +186,42 @@ void sortDn(DN dn, unsigned long begin, unsigned long end)
 			sortDn(dn, begin, pivot - 1);
 		if(end >= pivot + 2)
 			sortDn(dn, pivot + 1, end);
+	}
+	return nbCalls;
+}
+
+void quickSortDn(DN* dn)
+{
+	//qsort((void*)*dn->tuples, sizeof(dn->tuples) / sizeof(*dn->tuples), sizeof(*dn->tuples), lexQsort);
+	//qsort((void*)*dn->tuples, sizeof(dn->tuples) / sizeof(*dn->tuples), dn->n * sizeof(unsigned int), lexQsort);
+//	n1Length = dn->n;
+//	n2Length = dn->n;
+	//qsort((void*)*dn->tuples, dn->nbTuples, dn->n * sizeof(unsigned int), lexQsort);
+	//qsort((void*)dn->tuples, (size_t)dn->nbTuples, (size_t)(dn->n * sizeof(unsigned int)), lexQsort);
+//	qsort((void*)dn->tuples, (size_t)dn->nbTuples, (size_t)(dn->n * sizeof(unsigned int)), lexQsort);
+
+	NUPLE* dnTmp;
+	dnTmp = (NUPLE*)malloc(dn->n * sizeof(NUPLE));
+	unsigned int i,j;
+	for(i = 0 ; i < dn->nbTuples ; i++)
+	{
+		dnTmp[i].length = dn->n;
+		dnTmp[i].tab = (unsigned int*)malloc(dn->n * sizeof(unsigned int));
+		for(j = 0 ; j < dn->n ; j++)
+			dnTmp[i].tab[j] = dn->tuples[i][j];
+	}
+	qsort((void*)dnTmp, (size_t)dn->nbTuples, sizeof(NUPLE), lexQsort);
+/*	for(i = 0 ; i < dn->nbTuples ; i++)
+	{
+		for(j = 0 ; j < dn->n ; j++)
+			printf("%d-", dnTmp[i].tab[j]);
+		printf("\n");
+	}
+	printf("\n\n");*/
+	for(i = 0 ; i < dn->nbTuples ; i++)
+	{
+		for(j = 0 ; j < dn->n ; j++)
+			dn->tuples[i][j] = dnTmp[i].tab[j];
 	}
 }
 
