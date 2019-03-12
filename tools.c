@@ -131,6 +131,8 @@ unsigned long sortDn(DN* dn, unsigned long begin, unsigned long end)
 {//Sort lexicographically an instance of DN using quicksort and returns the number of recursives calls used.
 	static unsigned long nbCalls = 0;
 	nbCalls++;
+//	printf("Appel %ld\n", nbCalls);
+//	fflush(stdout);
 	unsigned int* tmp;
 	if(end - begin <= 0)
 		return nbCalls;
@@ -159,6 +161,8 @@ unsigned long sortDn(DN* dn, unsigned long begin, unsigned long end)
 		i = begin;
 		while(i < begin + pivot && i < end)
 		{
+			//printf("%ld-", i);
+			//fflush(stdout);
 			if(nuplecmp(dn->tuples[begin + pivot],dn->tuples[i],dn->n) < 0)
 			{
 				tmp = dn->tuples[begin + pivot];
@@ -178,9 +182,9 @@ unsigned long sortDn(DN* dn, unsigned long begin, unsigned long end)
 			else
 				i++;
 		}
-		if(pivot >= begin + 2)
+		if(pivot >= 2)
 			sortDn(dn, begin, begin + pivot - 1);
-		if(end >= pivot + 2)
+		if(end >= begin + pivot + 2)
 			sortDn(dn, begin + pivot + 1, end);
 	}
 	return nbCalls;

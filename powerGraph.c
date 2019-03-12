@@ -201,7 +201,7 @@ DN generateDn(const GRAPH* g, unsigned int n)
 		NO_MEM_LEFT()
 	for(i = 0 ; i < g->nbVertices ; i++)
 	{
-//		printf("On en est à i = %ld\n", i);
+		//printf("On en est à i = %ld\n", i);
 		nbNeighbours = 0;
 		tupleTmp = (unsigned int*)malloc(g->nbVertices * sizeof(unsigned int));
 		if(tupleTmp == NULL)
@@ -216,9 +216,9 @@ DN generateDn(const GRAPH* g, unsigned int n)
 		}
 		if(nbNeighbours > n)
 		{//If vertex i has strictly more than n neighbours then we have to find all the subsequences of length n of tupleTmp and add it (if not exists) in dnTmp.
-			printf("Début subseq\n");
+			//printf("Début subseq\n");
 			subSeqTupleTmp = subSequences(tupleTmp, nbNeighbours);
-			printf("Fin subseq\n");
+			//printf("Fin subseq\n");
 			//We now add, if needed, the new n-uples to dnTmp
 			unsigned long** bin = binomAll(nbNeighbours);
 			for(j = 0 ; j < bin[nbNeighbours][n] ; j++)
