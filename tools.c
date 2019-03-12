@@ -66,19 +66,6 @@ unsigned long** binomAll(unsigned char n)
 	return binom;
 }
 
-bool lex(unsigned int* nuple1, unsigned int* nuple2, unsigned int n)
-{//Returns true iff nuple1 < nuple2.
-	unsigned int i;
-	for(i = 0 ; i < n ; i++)
-	{
-		if(nuple1[i] < nuple2[i])
-			return true;
-		else if(nuple1[i] > nuple2[i])
-			return false;
-	}
-	return false;
-}
-
 int lexQsort(void const *nuple1, void const *nuple2)
 {
 	NUPLE* n1 = (NUPLE*)nuple1;
@@ -140,7 +127,7 @@ int nuplecmp(unsigned int *nuple1, unsigned int *nuple2, unsigned int n)
 	return 0;
 }
 
-unsigned long sortDn(DN dn, unsigned long begin, unsigned long end)
+unsigned long sortDn(DN* dn, unsigned long begin, unsigned long end)
 {//Sort lexicographically an instance of DN using quicksort and returns the number of recursives calls used.
 	static unsigned long nbCalls = 0;
 	nbCalls++;
@@ -149,43 +136,52 @@ unsigned long sortDn(DN dn, unsigned long begin, unsigned long end)
 		return nbCalls;
 	else if(end - begin == 1)
 	{
-		if(lex(dn.tuples[end],dn.tuples[begin],dn.n))
+		if(nuplecmp(dn->tuples[end],dn->tuples[begin],dn->n) < 0)
 		{
-			tmp = dn.tuples[begin];
-			dn.tuples[begin] = dn.tuples[end];
-			dn.tuples[end] = tmp;
+			tmp = dn->tuples[begin];
+			dn->tuples[begin] = dn->tuples[end];
+			dn->tuples[end] = tmp;
 		}
 		return nbCalls;
 	}
 	else
 	{
 		unsigned long i,pivot;
-		pivot = rand() % (end - begin + 1);
-		if(pivot < end - begin)
+		//pivot = rand() % (end - begin + 1);
+		pivot = end - begin;
+		/*if(pivot < end - begin)
 		{//If needed, we put the pivot at the end.
-			tmp = dn.tuples[end];
-			dn.tuples[end] = dn.tuples[begin + pivot];
-			dn.tuples[begin + pivot] = tmp;
+			tmp = dn->tuples[end];
+			dn->tuples[end] = dn->tuples[begin + pivot];
+			dn->tuples[begin + pivot] = tmp;
 			pivot = end - begin;
-		}
+		}*/
 		i = begin;
 		while(i < begin + pivot && i < end)
 		{
-			if(lex(dn.tuples[begin + pivot],dn.tuples[i],dn.n))
+			if(nuplecmp(dn->tuples[begin + pivot],dn->tuples[i],dn->n) < 0)
 			{
-				tmp = dn.tuples[begin + pivot];
-				dn.tuples[begin + pivot] = dn.tuples[i];
-				dn.tuples[i] = dn.tuples[begin + pivot - 1];
-				dn.tuples[begin + pivot - 1] = tmp;
+				tmp = dn->tuples[begin + pivot];
+				if(i < begin + pivot - 1)
+				{
+					dn->tuples[begin + pivot] = dn->tuples[i];
+					dn->tuples[i] = dn->tuples[begin + pivot - 1];
+					dn->tuples[begin + pivot - 1] = tmp;
+				}
+				else
+				{
+					dn->tuples[begin + pivot] = dn->tuples[i];
+					dn->tuples[i] = tmp;
+				}
 				pivot--;
 			}
 			else
 				i++;
 		}
 		if(pivot >= begin + 2)
-			sortDn(dn, begin, pivot - 1);
+			sortDn(dn, begin, begin + pivot - 1);
 		if(end >= pivot + 2)
-			sortDn(dn, pivot + 1, end);
+			sortDn(dn, begin + pivot + 1, end);
 	}
 	return nbCalls;
 }
@@ -202,27 +198,43 @@ void quickSortDn(DN* dn)
 
 	NUPLE* dnTmp;
 	dnTmp = (NUPLE*)malloc(dn->n * sizeof(NUPLE));
-	unsigned int i,j;
+	if(dnTmp == NULL)
+		NO_MEM_LEFT()
+	unsigned long i,j;
+	printf("Bienvenue dans quicksort.\n");
+	fflush(stdout);
 	for(i = 0 ; i < dn->nbTuples ; i++)
 	{
 		dnTmp[i].length = dn->n;
 		dnTmp[i].tab = (unsigned int*)malloc(dn->n * sizeof(unsigned int));
+		if(dnTmp[i].tab == NULL)
+			NO_MEM_LEFT()
 		for(j = 0 ; j < dn->n ; j++)
+		{
 			dnTmp[i].tab[j] = dn->tuples[i][j];
-	}
-	qsort((void*)dnTmp, (size_t)dn->nbTuples, sizeof(NUPLE), lexQsort);
-/*	for(i = 0 ; i < dn->nbTuples ; i++)
-	{
-		for(j = 0 ; j < dn->n ; j++)
-			printf("%d-", dnTmp[i].tab[j]);
+			printf("%d--", dn->tuples[i][j]);
+		}
 		printf("\n");
 	}
-	printf("\n\n");*/
+	//qsort((void*)dnTmp, (size_t)dn->nbTuples, sizeof(NUPLE), lexQsort);
 	for(i = 0 ; i < dn->nbTuples ; i++)
 	{
 		for(j = 0 ; j < dn->n ; j++)
-			dn->tuples[i][j] = dnTmp[i].tab[j];
+		{
+			printf("%d-", dnTmp[i].tab[j]);
+			if(dnTmp[i].tab[j] != dn->tuples[i][j])
+				printf("BUG");
+		}
+		printf("\n");
 	}
+	printf("\n\n");
+	/*for(i = 0 ; i < dn->nbTuples ; i++)
+	{
+		for(j = 0 ; j < dn->n ; j++)
+			dn->tuples[i][j] = dnTmp[i].tab[j];
+		free(dnTmp[i].tab);
+	}
+	free(dnTmp);*/
 }
 
 unsigned long dichoSearchDN(const DN *dn, unsigned int *x, unsigned long begin, unsigned long end)

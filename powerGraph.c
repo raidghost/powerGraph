@@ -81,10 +81,10 @@ unsigned int testHn(const GRAPH* g, unsigned int nMax, int verbose)
 
 		if(verbose >= 2)
 		{
-			printf("D%d := \n\n", n+1);
-			displayDn(&dn);
-			printf("D%d := \n\n", n);
+			printf("\nD%d := \n\n", n);
 			displayDn(&dnMoins1);
+			printf("\nD%d := \n\n", n+1);
+			displayDn(&dn);
 		}
 
 		//We create the matrix Mn
@@ -122,21 +122,28 @@ unsigned int testHn(const GRAPH* g, unsigned int nMax, int verbose)
 
 		if(verbose >= 3)
 		{
+			printf("\nM%d :=\n", n+1);
 			displayMatrix(&mN);
 			printf("\n\n");
 		}
 		//Beware, computing the rank changes the matrix !
 		rankMn = rankF2(&mN);
 		if(verbose)
-			printf("Le rang de M%d vaut : %ld\n", n+1, rankMn);
+			printf("\nLe rang de M%d vaut : %ld\n", n+1, rankMn);
 
 		if(rankMn == dnMoins1.nbTuples - rankMnMoins1)
 		{
 			n++;
 			rankMnMoins1 = rankMn;
+			if(verbose)
+				printf("\nH%d est vraie.\n", n);
 		}
 		else
+		{
+			if(verbose)
+				printf("\nH%d est fausse.\n", n+1);
 			goOn = false;
+		}
 
 		//We free dnMoins1
 		for(k = 0 ; k < dnMoins1.nbTuples ; k++)
@@ -209,7 +216,9 @@ DN generateDn(const GRAPH* g, unsigned int n)
 		}
 		if(nbNeighbours > n)
 		{//If vertex i has strictly more than n neighbours then we have to find all the subsequences of length n of tupleTmp and add it (if not exists) in dnTmp.
+			printf("Début subseq\n");
 			subSeqTupleTmp = subSequences(tupleTmp, nbNeighbours);
+			printf("Fin subseq\n");
 			//We now add, if needed, the new n-uples to dnTmp
 			unsigned long** bin = binomAll(nbNeighbours);
 			for(j = 0 ; j < bin[nbNeighbours][n] ; j++)
@@ -237,9 +246,9 @@ DN generateDn(const GRAPH* g, unsigned int n)
 			{
 				for(k = 0 ; k < bin[n][j] ; k++)
 					free(subSeqTupleTmp[j][k]);
+				free(subSeqTupleTmp[j]);
 			}
-			free(tupleTmp);
-
+			free(subSeqTupleTmp);
 		}
 		else if(nbNeighbours == n)
 		{
@@ -251,7 +260,7 @@ DN generateDn(const GRAPH* g, unsigned int n)
 	}
 
 	//We populate dn
-	printf("peuplage de D%d\n", n);
+	//printf("Début du remplissage de D%d\n", n);
 	dn.n = n;
 	dn.nbTuples = nbTuples;
 	dn.tuples = (unsigned int**)malloc(nbTuples * sizeof(unsigned int*));
@@ -265,18 +274,17 @@ DN generateDn(const GRAPH* g, unsigned int n)
 		for(j = 0 ; j < n ; j++)
 			dn.tuples[i][j] = dnTmp[i][j];
 	}
-	printf("Fin du peuplage de D%d. Il y a %ld éléments.\n", n, dn.nbTuples);
+	//printf("Fin du remplissage de D%d. Il y a %ld éléments.\n", n, dn.nbTuples);
 	if(dn.nbTuples >= 2)
 	{
-		printf("début du tri de D%d\n", n);
-//		displayDn(&dn);
-//		printf("\n\n");
-//		unsigned long nbCalls = sortDn(dn, 0, dn.nbTuples - 1);
-//		printf("fin du tri de D%d en %ld appels\n", n, nbCalls);
-		quickSortDn(&dn);
+		printf("Début du tri de D%d\n", n);
+		//displayDn(&dn);
+		unsigned long nbCalls = sortDn(&dn, 0, dn.nbTuples - 1);
+		printf("Fin du tri de D%d en %ld appels\n", n, nbCalls);
+//		quickSortDn(&dn);
 		//displayDn(&dn);
 //		fflush(stdout);
-		printf("fin du tri de D%d\n", n);
+		//printf("fin du tri de D%d\n", n);
 	}
 	return dn;
 }
