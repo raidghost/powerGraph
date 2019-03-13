@@ -30,7 +30,7 @@ GRAPH loadGraphFromFile(char *fileName)
 		NO_MEM_LEFT()
 	for(i = 0 ; i < g.nbVertices ; i++)
 	{
-		g.mat[i] = (char*)malloc(g.nbVertices * sizeof(char));
+		g.mat[i] = (char*)calloc(g.nbVertices,sizeof(char));
 		if(g.mat[i] == NULL)
 			NO_MEM_LEFT()
 	}
@@ -48,7 +48,7 @@ GRAPH loadGraphFromFile(char *fileName)
 				break;
 			}
 		}
-		while(i < NB_CHAR_MAX && line[i+1] != '\n')
+		while(i + 1 < NB_CHAR_MAX && line[i+1] != '\n')
 		{
 			vertex2Char[i-j] = line[i+1];
 			i++;

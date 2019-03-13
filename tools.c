@@ -73,6 +73,14 @@ unsigned long** binomAll(unsigned int n)
 	return binom;
 }
 
+void freeBinomAll(unsigned long** bin, unsigned int n)
+{
+	unsigned int i;
+	for(i = 0 ; i <= n ; i++)
+		free(bin[i]);
+	free(bin);
+}
+
 int nuplecmp(unsigned int *nuple1, unsigned int *nuple2, unsigned int n)
 {//Returns 0 if nuple1 == nuple2, -1 if nuple1 < nuple2 and +1 if nuple1 > nuple2.
 	unsigned int i;
@@ -95,6 +103,8 @@ unsigned long sortDn(DN* dn, unsigned long begin, unsigned long end)
 		return nbCalls;
 	else if(end - begin == 1)
 	{
+/*		printf("%ld\n", dn->tuples[end]);
+		printf("%ld\n", dn->tuples[begin]);*/
 		if(nuplecmp(dn->tuples[end],dn->tuples[begin],dn->n) < 0)
 		{
 			tmp = dn->tuples[begin];

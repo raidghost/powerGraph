@@ -33,12 +33,22 @@ int main(int argc, char *argv[])
 	}
 
 	unsigned int n;
-	GRAPH g;
-	g = loadGraphFromFile(argv[1]);
-	n = string2Int(argv[2]);
+	GRAPH g = loadGraphFromFile(argv[1]);
+	n = (unsigned int)string2Int(argv[2]);
 	if(verbose >= 3)
 		displayGraph(&g);
 	printf("Hn est vraie jusqu'à n = %d\n", testHn(&g, n, verbose));
 	freeGraph(&g);
+/*	unsigned int l[] = {0,1,2,3};
+	unsigned int **sub = subSequencesFixedLength(l, 4, 2);
+	unsigned int i,j;
+	for(i = 0 ; i < 6 ; i++)
+	{
+		for(j = 0 ; j < 2 ; j++)
+			printf("%d ", sub[i][j]);
+		free(sub[i]);
+		printf("\n");
+	}
+	free(sub);*/
 	return EXIT_SUCCESS;
 }

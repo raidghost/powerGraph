@@ -51,6 +51,8 @@ unsigned int testHn(const GRAPH* g, unsigned int nMax, int verbose)
 		//We create the matrix Mn
 		mN.nbRows = dnMoins1.nbTuples;
 		mN.nbColumns = dn.nbTuples;
+		if(verbose)
+			printf("La matrice M%d est de taille %ld x %ld\n", n, mN.nbRows, mN.nbColumns);
 		mN.mat = (char**)malloc(mN.nbRows * sizeof(char*));
 		if(mN.mat == NULL)
 			NO_MEM_LEFT()
@@ -65,7 +67,6 @@ unsigned int testHn(const GRAPH* g, unsigned int nMax, int verbose)
 		//It's important for Dn and Dn-1 to be lexicographically sorted !
 		for(j = 0 ; j < mN.nbColumns ; j++)
 		{
-			//-----------------Il faudra libérer la mémoire utilisée par subseq !
 			subseqs = subSequencesLengthMoins1(dn.tuples[j], dn.n);
 			//For every subsequence of length n-1
 			for(i = 0 ; i < dn.n ; i++)
@@ -83,7 +84,7 @@ unsigned int testHn(const GRAPH* g, unsigned int nMax, int verbose)
 		//Beware, computing the rank changes the matrix !
 		rankMn = rankF2(&mN);
 		if(verbose)
-			printf("\nLe rang de M%d vaut : %ld\n", n+1, rankMn);
+			printf("\nLe rang de M%d vaut : %ld\n", dn.n, rankMn);
 
 		if(rankMn == dnMoins1.nbTuples - rankMnMoins1)
 		{
@@ -143,22 +144,19 @@ DN generateDn(const GRAPH* g, unsigned int n)
 		}
 		return dn;
 	}
-	
+
 	unsigned long i,j,k,l,nbNeighbours;
 	unsigned int dnTmp[ARRAY_MAX_LENGTH];
-	unsigned int *tuple, *tupleTmp;
-	unsigned int*** subSeqTupleTmp = NULL;
+	unsigned int *tupleTmp = NULL;
+	unsigned int** subSeqTupleTmp = NULL;
 	unsigned long nbTuples = 0;
 
-	tuple = (unsigned int*)malloc(n * sizeof(unsigned int));
-	if(tuple == NULL)
+	tupleTmp = (unsigned int*)malloc(g->nbVertices * sizeof(unsigned int));
+	if(tupleTmp == NULL)
 		NO_MEM_LEFT()
 	for(i = 0 ; i < g->nbVertices ; i++)
 	{
 		nbNeighbours = 0;
-		tupleTmp = (unsigned int*)malloc(g->nbVertices * sizeof(unsigned int));
-		if(tupleTmp == NULL)
-			NO_MEM_LEFT()
 		for(j = 0 ; j < g->nbVertices ; j++)
 		{
 			if(g->mat[i][j] == 1)
@@ -169,7 +167,7 @@ DN generateDn(const GRAPH* g, unsigned int n)
 		}
 		if(nbNeighbours > n)
 		{//If vertex i has strictly more than n neighbours then we have to find all the subsequences of length n of tupleTmp and add it (if not exists) in dnTmp.
-			subSeqTupleTmp = subSequencesBoundedLength(tupleTmp, nbNeighbours, n);
+			subSeqTupleTmp = subSequencesFixedLength(tupleTmp, nbNeighbours, n);
 			//We now add, if needed, the new n-uples to dnTmp
 			unsigned long** bin = binomAll(nbNeighbours);
 			bool isSequenceNew;
@@ -180,7 +178,7 @@ DN generateDn(const GRAPH* g, unsigned int n)
 				{
 					for(l = 0 ; l < n ; l++)
 					{
-						if(dnTmp[k * n + l] != subSeqTupleTmp[n][j][l])
+						if(dnTmp[k * n + l] != subSeqTupleTmp[j][l])
 							break;
 					}
 					if(l == n)
@@ -192,18 +190,15 @@ DN generateDn(const GRAPH* g, unsigned int n)
 				if(isSequenceNew)
 				{
 					for(k = 0 ; k < n ; k++)
-						dnTmp[nbTuples * n + k] = subSeqTupleTmp[n][j][k];
+						dnTmp[nbTuples * n + k] = subSeqTupleTmp[j][k];
 					nbTuples++;
 				}
 			}
 			//We free useless memory.
-			for(j = 0 ; j <= n ; j++)
-			{
-				for(k = 0 ; k < bin[n][j] ; k++)
-					free(subSeqTupleTmp[j][k]);
-				free(subSeqTupleTmp[j]);
-			}
+			for(k = 0 ; k < bin[nbNeighbours][n] ; k++)
+				free(subSeqTupleTmp[k]);
 			free(subSeqTupleTmp);
+			freeBinomAll(bin, nbNeighbours);
 		}
 		else if(nbNeighbours == n)
 		{
@@ -211,13 +206,13 @@ DN generateDn(const GRAPH* g, unsigned int n)
 				dnTmp[nbTuples * n + k] = tupleTmp[k];
 			nbTuples++;
 		}
-		else
-			free(tupleTmp);
 	}
-
+	free(tupleTmp);
 	//We populate dn
 	dn.n = n;
 	dn.nbTuples = nbTuples;
+	if(nbTuples == 0)
+		return dn;
 	dn.tuples = (unsigned int**)malloc(nbTuples * sizeof(unsigned int*));
 	if(dn.tuples == NULL)
 		NO_MEM_LEFT()
@@ -439,37 +434,138 @@ unsigned int*** subSequences(unsigned int list[], unsigned long length)
 	return subseqs;
 }
 
+unsigned int** subSequencesFixedLength(unsigned int list[], unsigned long length, unsigned long subSeqLength)
+{//Computes all the subsequences of lenght = subSeqMaxLength of a list without doublons !
+	if(length == 0 || subSeqLength > length)
+		return NULL;
+	unsigned int*** subseqs;
+	unsigned int** result = NULL;
+	unsigned int* newSubSeq = NULL;
+	unsigned long i,j,k,l;
+	unsigned long** bin = binomAll(length);
+
+	subseqs = (unsigned int***)malloc(subSeqLength* sizeof(unsigned int**));
+
+	if(subseqs == NULL)
+		NO_MEM_LEFT()
+	
+	//We can now create the subseqs array of array with good size using binomials.
+	for(i = 0 ; i < subSeqLength ; i++)
+	{
+		//We know exactly the number of subsequences of size i+1.
+		subseqs[i] = (unsigned int**)malloc(bin[length][i+1] * sizeof(unsigned int*));
+		if(subseqs[i] == NULL)
+			NO_MEM_LEFT()
+		if(i == 0)
+		{
+			for(j = 0 ; j < length ; j++)
+			{
+				subseqs[0][j] = (unsigned int*)malloc(sizeof(unsigned int));
+				if(subseqs[0][j] == NULL)
+					NO_MEM_LEFT()
+				subseqs[0][j][0] = list[j];
+			}
+		}
+		else
+		{
+			for(j = 0 ; j < bin[length][i+1] ; j++)
+			{
+				subseqs[i][j] = (unsigned int*)malloc((i+1) * sizeof(unsigned int));
+				if(subseqs[i][j] == NULL)
+					NO_MEM_LEFT()
+			}
+			//We look at every subsequences of size i.
+			unsigned int nbNewSubSeqs = 0;
+			for(j = 0 ; j < bin[length][i] ; j++)
+			{
+				//We look for an element which is not in subseqs[i-1][j].
+				for(k = 0 ; k < length ; k++)
+				{
+					for(l = 0 ; l < i ; l++)
+					{
+						if(list[k] == subseqs[i-1][j][l])
+							break;
+					}
+					if(l == i)
+					{//list[k] is not in subseqs[i-1][j]
+						newSubSeq = (unsigned int*)realloc(newSubSeq, (i+1) * sizeof(unsigned int));
+						if(newSubSeq == NULL)
+							NO_MEM_LEFT()
+						//Now we insert list[k] at the appropriate position in subseqs[i-1][j]
+						l = 0;
+						while(l < i && list[k] > subseqs[i-1][j][l])
+						{
+							newSubSeq[l] = subseqs[i-1][j][l];
+							l++;
+						}
+						newSubSeq[l] = list[k];
+						l++;
+						while(l < i+1)
+						{
+							newSubSeq[l] = subseqs[i-1][j][l-1];
+							l++;
+						}
+
+						//We must now check that the sequence obtained by adding list[k] to subseqs[i-1][j] (that is newSubSeq) is not already in subseqs[i].
+						bool subSeqExists = false;
+						unsigned a,b;
+						for(a = 0 ; a < nbNewSubSeqs ; a++)
+						{
+							for(b = 0 ; b < i+1 ; b++)
+							{
+								if(subseqs[i][a][b] != newSubSeq[b])
+									break;
+							}
+							if(b == i+1)
+							{//If the subsequences are the same
+								subSeqExists = true;
+								break;
+							}
+						}
+						if(!subSeqExists)
+						{
+							for(l = 0 ; l < i+1 ; l++)
+								subseqs[i][nbNewSubSeqs][l] = newSubSeq[l];
+							nbNewSubSeqs++;
+						}
+					}
+				}
+				free(subseqs[i-1][j]);
+			}
+			free(subseqs[i-1]);
+		}
+	}
+	freeBinomAll(bin, length);
+	result = subseqs[subSeqLength-1];
+	free(subseqs);
+	free(newSubSeq);
+	return result;
+}
+
+
 unsigned int*** subSequencesBoundedLength(unsigned int list[], unsigned long length, unsigned long subSeqMaxLength)
 {//Computes all the strict subsequences of lenght <= subSeqMaxLength of a list without doublons !
-	if(subSeqMaxLength > length)
+	if(length == 0 || subSeqMaxLength > length)
 		return NULL;
 	unsigned int*** subseqs;
 	unsigned int* newSubSeq;
 	unsigned long i,j,k,l;
-	unsigned long** binom = binomAll(length);
+	unsigned long** bin = binomAll(length);
 
 	subseqs = (unsigned int***)malloc((subSeqMaxLength+1)* sizeof(unsigned int**));
-	newSubSeq = (unsigned int*)malloc((length+1) * sizeof(unsigned int));
 
-	if(subseqs == NULL || newSubSeq == NULL)
+	if(subseqs == NULL)
 		NO_MEM_LEFT()
 	
 	//We can now create the subseqs array of array with good size using binomials.
 	for(i = 0 ; i <= subSeqMaxLength ; i++)
 	{
 		//We know exactly the number of subsequences of size i.
-		subseqs[i] = (unsigned int**)malloc(binom[length][i] * sizeof(unsigned int*));
+		subseqs[i] = (unsigned int**)malloc(bin[length][i] * sizeof(unsigned int*));
 		if(subseqs[i] == NULL)
 			NO_MEM_LEFT()
-		for(j = 0 ; j < binom[length][i] ; j++)
-		{
-			subseqs[i][j] = (unsigned int*)malloc((i+1) * sizeof(unsigned int));
-			if(subseqs[i][j] == NULL)
-				NO_MEM_LEFT()
-		}
-
 		if(i == 0)
-		{//There is one subsequence of size 0 : the empty subsequence.
+		{
 			subseqs[0] = (unsigned int**)malloc(sizeof(unsigned int*));
 			if(subseqs[0] == NULL)
 				NO_MEM_LEFT()
@@ -490,9 +586,15 @@ unsigned int*** subSequencesBoundedLength(unsigned int list[], unsigned long len
 		}
 		else
 		{
+			for(j = 0 ; j < bin[length][i] ; j++)
+			{
+				subseqs[i][j] = (unsigned int*)malloc(i * sizeof(unsigned int));
+				if(subseqs[i][j] == NULL)
+					NO_MEM_LEFT()
+			}
 			//We look at every subsequences of size i-1.
 			unsigned int nbNewSubSeqs = 0;
-			for(j = 0 ; j < binom[length][i-1] ; j++)
+			for(j = 0 ; j < bin[length][i-1] ; j++)
 			{
 				//We look for an element which is not in subseqs[i-1][j].
 				for(k = 0 ; k < length ; k++)
@@ -543,11 +645,14 @@ unsigned int*** subSequencesBoundedLength(unsigned int list[], unsigned long len
 							subseqs[i][nbNewSubSeqs] = newSubSeq;
 							nbNewSubSeqs++;
 						}
+						else
+							free(newSubSeq);
 					}
 				}
 			}
 		}
 	}
+	freeBinomAll(bin, length);
 	return subseqs;
 }
 
