@@ -3,7 +3,6 @@
 
 #include "structs.h"
 
-PADIQUE padique(unsigned long n, unsigned char p);
 unsigned int testHn(const GRAPH* g, unsigned int nMax, int verbose);
 DN generateDn(const GRAPH* g, unsigned int n);
 DN generateDn2(const GRAPH *g, unsigned int n);

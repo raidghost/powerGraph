@@ -10,43 +10,6 @@
 #include "powerGraph.h"
 #include "rank.h"
 
-PADIQUE padique(unsigned long n, unsigned char p)
-{
-	/*Given a non negative integer n, return n written in base p*/
-	unsigned long i;
-	unsigned long m = 0, power = 0;
-	PADIQUE padiqueN;
-	padiqueN.nbBits = (unsigned long)floor(log(n)/log(p)) + 1;
-
-	padiqueN.padique = (unsigned char*)malloc(padiqueN.nbBits * sizeof(unsigned char));
-	if(padiqueN.padique == NULL)
-	{
-		fprintf(stderr, "No memory left.\n");
-		exit(EXIT_FAILURE);
-	}
-	if(padiqueN.nbBits == 0)
-	{
-		padiqueN.padique = NULL;
-		return padiqueN;
-	}
-	else if(padiqueN.nbBits == 1)
-	{
-		padiqueN.padique[0] = n;
-		return padiqueN;
-	}
-	else
-	{
-		power = pow(p,padiqueN.nbBits-1);
-		for(i = padiqueN.nbBits ; i > 0 ; i--)
-		{
-			padiqueN.padique[m-i] = n / power;
-			n -= padiqueN.padique[m-i] * power;
-			power = power / p;
-		}
-	return padiqueN;
-	}
-}
-
 unsigned int testHn(const GRAPH* g, unsigned int nMax, int verbose)
 {//This function tests until which nMin <= n <= nMax the hypothesis Hm holds for the graph g.
 	bool goOn = true;
@@ -103,18 +66,10 @@ unsigned int testHn(const GRAPH* g, unsigned int nMax, int verbose)
 		for(j = 0 ; j < mN.nbColumns ; j++)
 		{
 			//-----------------Il faudra libérer la mémoire utilisée par subseq !
-			//subseq = subSequences(dn.tuples[j], dn.n);
 			subseqs = subSequencesLengthMoins1(dn.tuples[j], dn.n);
 			//For every subsequence of length n-1
 			for(i = 0 ; i < dn.n ; i++)
-			{
-				//Find the appropriate index
-				/*printf("i = %ld et j = %ld\n", i, j);
-				for(k = 0 ; k < n - 1 ; k++)
-					printf("%d-", subseq[n - 1][i][k]);
-				printf("\nOn fait mN.mat[%ld][%ld] = 1\n", a, j);*/
-				mN.mat[dichoSearchDN(&dnMoins1, subseqs + i*(dn.n-1), 0, dnMoins1.nbTuples)][j] = 1;
-			}
+					mN.mat[dichoSearchDN(&dnMoins1, subseqs + i*(dn.n-1), 0, dnMoins1.nbTuples)][j] = 1;
 			//We free subseq
 			free(subseqs);
 		}
@@ -190,7 +145,7 @@ DN generateDn(const GRAPH* g, unsigned int n)
 	}
 	
 	unsigned long i,j,k,l,nbNeighbours;
-	unsigned int* dnTmp[ARRAY_MAX_LENGTH];
+	unsigned int dnTmp[ARRAY_MAX_LENGTH];
 	unsigned int *tuple, *tupleTmp;
 	unsigned int*** subSeqTupleTmp = NULL;
 	unsigned long nbTuples = 0;
@@ -200,7 +155,6 @@ DN generateDn(const GRAPH* g, unsigned int n)
 		NO_MEM_LEFT()
 	for(i = 0 ; i < g->nbVertices ; i++)
 	{
-		//printf("On en est à i = %ld\n", i);
 		nbNeighbours = 0;
 		tupleTmp = (unsigned int*)malloc(g->nbVertices * sizeof(unsigned int));
 		if(tupleTmp == NULL)
@@ -215,40 +169,35 @@ DN generateDn(const GRAPH* g, unsigned int n)
 		}
 		if(nbNeighbours > n)
 		{//If vertex i has strictly more than n neighbours then we have to find all the subsequences of length n of tupleTmp and add it (if not exists) in dnTmp.
-			//printf("Début subseq\n");
-			//fflush(stdout);
 			subSeqTupleTmp = subSequencesBoundedLength(tupleTmp, nbNeighbours, n);
-			//subSeqTupleTmp = subSequences(tupleTmp, nbNeighbours);
-			//printf("Fin subseq\n");
-			//fflush(stdout);
 			//We now add, if needed, the new n-uples to dnTmp
 			unsigned long** bin = binomAll(nbNeighbours);
+			bool isSequenceNew;
 			for(j = 0 ; j < bin[nbNeighbours][n] ; j++)
 			{
-				bool isSequenceNew = true;
-				//printf("Début test doublon %ld\n", j);
-				//fflush(stdout);
+				isSequenceNew = true;
 				for(k = 0 ; k < nbTuples ; k++)
 				{
 					for(l = 0 ; l < n ; l++)
 					{
-						if(dnTmp[k][l] != subSeqTupleTmp[n][j][l])
+						if(dnTmp[k * n + l] != subSeqTupleTmp[n][j][l])
 							break;
 					}
 					if(l == n)
-					//The sequence has already been found.
+					{//The sequence has already been found.
 						isSequenceNew = false;
+						break;
+					}
 				}
-				//printf("Fin test doublon\n");
-				//fflush(stdout);
 				if(isSequenceNew)
 				{
-					dnTmp[nbTuples] = subSeqTupleTmp[n][j];
+					for(k = 0 ; k < n ; k++)
+						dnTmp[nbTuples * n + k] = subSeqTupleTmp[n][j][k];
 					nbTuples++;
 				}
 			}
-			//We free useless memory
-			for(j = 0 ; j < n ; j++)
+			//We free useless memory.
+			for(j = 0 ; j <= n ; j++)
 			{
 				for(k = 0 ; k < bin[n][j] ; k++)
 					free(subSeqTupleTmp[j][k]);
@@ -258,7 +207,8 @@ DN generateDn(const GRAPH* g, unsigned int n)
 		}
 		else if(nbNeighbours == n)
 		{
-			dnTmp[nbTuples] = tupleTmp;
+			for(k = 0 ; k < n ; k++)
+				dnTmp[nbTuples * n + k] = tupleTmp[k];
 			nbTuples++;
 		}
 		else
@@ -266,7 +216,6 @@ DN generateDn(const GRAPH* g, unsigned int n)
 	}
 
 	//We populate dn
-	//printf("Début du remplissage de D%d\n", n);
 	dn.n = n;
 	dn.nbTuples = nbTuples;
 	dn.tuples = (unsigned int**)malloc(nbTuples * sizeof(unsigned int*));
@@ -278,18 +227,10 @@ DN generateDn(const GRAPH* g, unsigned int n)
 		if(dn.tuples[i] == NULL)
 			NO_MEM_LEFT()
 		for(j = 0 ; j < n ; j++)
-			dn.tuples[i][j] = dnTmp[i][j];
+			dn.tuples[i][j] = dnTmp[i * n + j];
 	}
-	//printf("Fin du remplissage de D%d. Il y a %ld éléments.\n", n, dn.nbTuples);
 	if(dn.nbTuples >= 2)
-	{
-		//displayDn(&dn);
 		sortDn(&dn, 0, dn.nbTuples - 1);
-//		quickSortDn(&dn);
-		//displayDn(&dn);
-//		fflush(stdout);
-		//printf("fin du tri de D%d\n", n);
-	}
 	return dn;
 }
 
@@ -333,7 +274,6 @@ DN generateDn2(const GRAPH *g, unsigned int n)
 			if(dominatedByJ)
 			{
 				dominated = true;
-				printf("Oui\n");
 				break;
 			}
 		}

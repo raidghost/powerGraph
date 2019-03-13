@@ -12,13 +12,6 @@ struct GRAPH
 	char** mat;
 };
 
-typedef struct PADIQUE PADIQUE;
-struct PADIQUE
-{
-	unsigned long nbBits;
-	unsigned char* padique;
-};
-
 typedef struct MATRIX MATRIX;
 struct MATRIX
 {
