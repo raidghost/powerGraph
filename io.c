@@ -19,7 +19,10 @@ GRAPH loadGraphFromFile(char *fileName)
 	if(file == NULL)
 		return g;
 	if(!fscanf(file, "%s\n", nbVerticesChar))
+	{
+		fclose(file);
 		return g;
+	}
 	g.nbVertices = string2Int(nbVerticesChar);
 
 	g.mat = (char**)malloc(g.nbVertices * sizeof(char*));
@@ -56,6 +59,7 @@ GRAPH loadGraphFromFile(char *fileName)
 		g.mat[vertex1][vertex2] = 1;
 		g.mat[vertex2][vertex1] = 1;
 	}
+	fclose(file);
 	return g;
 }
 

@@ -53,7 +53,7 @@ unsigned int testHn(const GRAPH* g, unsigned int nMax, int verbose)
 	unsigned long i,j,k;
 	unsigned long rankMn = 0, rankMnMoins1 = 0;
 	unsigned int n = 0;
-	unsigned int*** subseq = NULL;
+	unsigned int* subseqs = NULL;
 	DN dnMoins1, dn;
 	MATRIX mN;
 	mN.mat = NULL;
@@ -62,10 +62,8 @@ unsigned int testHn(const GRAPH* g, unsigned int nMax, int verbose)
 	//We assume the graph to be non empty and conected.
 		return 1;
 
-	printf("Début\n");
 	dnMoins1 = generateDn(g, 1);
 	rankMnMoins1 = 1;
-	printf("fin\n");
 
 	n = 1;
 	while(n < nMax && goOn)
@@ -105,7 +103,8 @@ unsigned int testHn(const GRAPH* g, unsigned int nMax, int verbose)
 		for(j = 0 ; j < mN.nbColumns ; j++)
 		{
 			//-----------------Il faudra libérer la mémoire utilisée par subseq !
-			subseq = subSequences(dn.tuples[j], dn.n);
+			//subseq = subSequences(dn.tuples[j], dn.n);
+			subseqs = subSequencesLengthMoins1(dn.tuples[j], dn.n);
 			//For every subsequence of length n-1
 			for(i = 0 ; i < dn.n ; i++)
 			{
@@ -114,10 +113,10 @@ unsigned int testHn(const GRAPH* g, unsigned int nMax, int verbose)
 				for(k = 0 ; k < n - 1 ; k++)
 					printf("%d-", subseq[n - 1][i][k]);
 				printf("\nOn fait mN.mat[%ld][%ld] = 1\n", a, j);*/
-				mN.mat[dichoSearchDN(&dnMoins1, subseq[dn.n - 1][i], 0, dnMoins1.nbTuples)][j] = 1;
+				mN.mat[dichoSearchDN(&dnMoins1, subseqs + i*(dn.n-1), 0, dnMoins1.nbTuples)][j] = 1;
 			}
 			//We free subseq
-			freeSubSequences(subseq, dn.n);
+			free(subseqs);
 		}
 
 		if(verbose >= 3)
@@ -217,13 +216,18 @@ DN generateDn(const GRAPH* g, unsigned int n)
 		if(nbNeighbours > n)
 		{//If vertex i has strictly more than n neighbours then we have to find all the subsequences of length n of tupleTmp and add it (if not exists) in dnTmp.
 			//printf("Début subseq\n");
-			subSeqTupleTmp = subSequences(tupleTmp, nbNeighbours);
+			//fflush(stdout);
+			subSeqTupleTmp = subSequencesBoundedLength(tupleTmp, nbNeighbours, n);
+			//subSeqTupleTmp = subSequences(tupleTmp, nbNeighbours);
 			//printf("Fin subseq\n");
+			//fflush(stdout);
 			//We now add, if needed, the new n-uples to dnTmp
 			unsigned long** bin = binomAll(nbNeighbours);
 			for(j = 0 ; j < bin[nbNeighbours][n] ; j++)
 			{
 				bool isSequenceNew = true;
+				//printf("Début test doublon %ld\n", j);
+				//fflush(stdout);
 				for(k = 0 ; k < nbTuples ; k++)
 				{
 					for(l = 0 ; l < n ; l++)
@@ -235,6 +239,8 @@ DN generateDn(const GRAPH* g, unsigned int n)
 					//The sequence has already been found.
 						isSequenceNew = false;
 				}
+				//printf("Fin test doublon\n");
+				//fflush(stdout);
 				if(isSequenceNew)
 				{
 					dnTmp[nbTuples] = subSeqTupleTmp[n][j];
@@ -242,7 +248,7 @@ DN generateDn(const GRAPH* g, unsigned int n)
 				}
 			}
 			//We free useless memory
-			for(j = 0 ; j < n - 1 ; j++)
+			for(j = 0 ; j < n ; j++)
 			{
 				for(k = 0 ; k < bin[n][j] ; k++)
 					free(subSeqTupleTmp[j][k]);
@@ -277,16 +283,110 @@ DN generateDn(const GRAPH* g, unsigned int n)
 	//printf("Fin du remplissage de D%d. Il y a %ld éléments.\n", n, dn.nbTuples);
 	if(dn.nbTuples >= 2)
 	{
-		printf("Début du tri de D%d\n", n);
 		//displayDn(&dn);
-		unsigned long nbCalls = sortDn(&dn, 0, dn.nbTuples - 1);
-		printf("Fin du tri de D%d en %ld appels\n", n, nbCalls);
+		sortDn(&dn, 0, dn.nbTuples - 1);
 //		quickSortDn(&dn);
 		//displayDn(&dn);
 //		fflush(stdout);
 		//printf("fin du tri de D%d\n", n);
 	}
 	return dn;
+}
+
+DN generateDn2(const GRAPH *g, unsigned int n)
+{//This function uses another algorithm than generateDn to compute the same thing.
+	DN dn;
+	dn.n = n;
+	dn.nbTuples = 0;
+	dn.tuples = NULL;
+
+	NUPLE currentNuple;
+	currentNuple.length = n;
+
+	if(n > g->nbVertices)
+		return dn;
+
+	//We compute an upper bound on the number of n-nuple dominated.
+	unsigned long nbNupleMax = binom(g->nbVertices, n);
+	unsigned long i,j,nupleNumber, nbNuples = 0;
+	unsigned int *dnTmp = (unsigned int*)malloc(nbNupleMax * n * sizeof(unsigned int));
+
+	if(dnTmp == NULL)
+		NO_MEM_LEFT()
+	//We try every possible nuple. One can obtain the corresponding nuple from its number by doing a padique extension.
+	for(nupleNumber = 0 ; nupleNumber < nbNupleMax ; nupleNumber++)
+	{
+		padiqueExpansion(&currentNuple, nupleNumber, g->nbVertices);
+		//We test if the current nuple is dominated in the graph.
+		bool dominated = false;
+		for(j = 0 ; j < g->nbVertices ; j++)
+		{
+			bool dominatedByJ = true;
+			for(i = 0 ; i < currentNuple.length ; i++)
+			{
+				if(!g->mat[currentNuple.tab[i]][j])
+				{
+					dominatedByJ = false;
+					break;
+				}
+			}
+			if(dominatedByJ)
+			{
+				dominated = true;
+				printf("Oui\n");
+				break;
+			}
+		}
+		if(dominated)
+		{//If needed, we add the current nuple to dn.
+			for(i = 0 ; i < n ; i++)
+				dnTmp[nbNuples * n + i] = currentNuple.tab[i];
+			nbNuples++;
+		}
+	}
+
+	//We populate dn.
+	dn.nbTuples = nbNuples;
+	dn.tuples = (unsigned int**)malloc(nbNuples * sizeof(unsigned int*));
+	if(dn.tuples == NULL)
+		NO_MEM_LEFT()
+	for(i = 0 ; i < nbNuples ; i++)
+	{
+		dn.tuples[i] = (unsigned int*)malloc(n * sizeof(unsigned int));
+		if(dn.tuples == NULL)
+			NO_MEM_LEFT()
+		for(j = 0 ; j < n ; j++)
+			dn.tuples[i][j] = dnTmp[i * n + j];
+	}
+
+	//We free useless memory.
+	free(currentNuple.tab);
+	free(dnTmp);
+	return dn;
+}
+
+unsigned int* subSequencesLengthMoins1(unsigned int list[], unsigned long length)
+{//Compute all the subsequences of length length - 1
+//It's much faster than calling the function subSequences and use only a small part of the result !
+	if(length == 0)
+		return NULL;
+	unsigned int* subseqs = (unsigned int*)malloc(length * (length - 1) * sizeof(unsigned int));
+	if(subseqs == NULL)
+		NO_MEM_LEFT()
+	unsigned i,j,k;
+	for(i = 0 ; i < length ; i++)
+	{
+		k = 0;
+		for(j = 0 ; j < length ; j++)
+		{
+			if(j != i)
+			{
+				subseqs[i * (length-1) + k] = list[j];
+				k++;
+			}
+		}
+	}
+	return subseqs;
 }
 
 unsigned int*** subSequences(unsigned int list[], unsigned long length)
@@ -353,7 +453,7 @@ unsigned int*** subSequences(unsigned int list[], unsigned long length)
 					if(l == i-1)
 					{//list[k] is not in subseqs[i-1][j]
 						unsigned int a,b;
-						newSubSeq = (unsigned int*)malloc((i+1) * sizeof(unsigned int));
+						newSubSeq = (unsigned int*)malloc(i * sizeof(unsigned int));
 						if(newSubSeq == NULL)
 							NO_MEM_LEFT()
 						//Now we insert list[k] at the appropriate position in subseqs[i-1][j]
@@ -396,16 +496,118 @@ unsigned int*** subSequences(unsigned int list[], unsigned long length)
 			}
 		}
 	}
-/*	for(i = 0 ; i < length ; i++)
+	return subseqs;
+}
+
+unsigned int*** subSequencesBoundedLength(unsigned int list[], unsigned long length, unsigned long subSeqMaxLength)
+{//Computes all the strict subsequences of lenght <= subSeqMaxLength of a list without doublons !
+	if(subSeqMaxLength > length)
+		return NULL;
+	unsigned int*** subseqs;
+	unsigned int* newSubSeq;
+	unsigned long i,j,k,l;
+	unsigned long** binom = binomAll(length);
+
+	subseqs = (unsigned int***)malloc((subSeqMaxLength+1)* sizeof(unsigned int**));
+	newSubSeq = (unsigned int*)malloc((length+1) * sizeof(unsigned int));
+
+	if(subseqs == NULL || newSubSeq == NULL)
+		NO_MEM_LEFT()
+	
+	//We can now create the subseqs array of array with good size using binomials.
+	for(i = 0 ; i <= subSeqMaxLength ; i++)
 	{
+		//We know exactly the number of subsequences of size i.
+		subseqs[i] = (unsigned int**)malloc(binom[length][i] * sizeof(unsigned int*));
+		if(subseqs[i] == NULL)
+			NO_MEM_LEFT()
 		for(j = 0 ; j < binom[length][i] ; j++)
 		{
-			for(k = 0 ; k < i ; k++)
-				printf("%d-", subseqs[i][j][k]);
-			printf("\n");
+			subseqs[i][j] = (unsigned int*)malloc((i+1) * sizeof(unsigned int));
+			if(subseqs[i][j] == NULL)
+				NO_MEM_LEFT()
 		}
-		printf("\n\n");
-	}*/
+
+		if(i == 0)
+		{//There is one subsequence of size 0 : the empty subsequence.
+			subseqs[0] = (unsigned int**)malloc(sizeof(unsigned int*));
+			if(subseqs[0] == NULL)
+				NO_MEM_LEFT()
+			subseqs[0][0] = NULL;
+		}
+		else if(i == 1)
+		{
+			subseqs[1] = (unsigned int**)malloc(length * sizeof(unsigned int*));
+			if(subseqs[1] == NULL)
+				NO_MEM_LEFT()
+			for(j = 0 ; j < length ; j++)
+			{
+				subseqs[1][j] = (unsigned int*)malloc(sizeof(unsigned int));
+				if(subseqs[1][j] == NULL)
+					NO_MEM_LEFT()
+				subseqs[1][j][0] = list[j];
+			}
+		}
+		else
+		{
+			//We look at every subsequences of size i-1.
+			unsigned int nbNewSubSeqs = 0;
+			for(j = 0 ; j < binom[length][i-1] ; j++)
+			{
+				//We look for an element which is not in subseqs[i-1][j].
+				for(k = 0 ; k < length ; k++)
+				{
+					for(l = 0 ; l < i-1 ; l++)
+					{
+						if(list[k] == subseqs[i-1][j][l])
+							break;
+					}
+					if(l == i-1)
+					{//list[k] is not in subseqs[i-1][j]
+						newSubSeq = (unsigned int*)malloc(i * sizeof(unsigned int));
+						if(newSubSeq == NULL)
+							NO_MEM_LEFT()
+						//Now we insert list[k] at the appropriate position in subseqs[i-1][j]
+						l = 0;
+						while(l < i - 1 && list[k] > subseqs[i-1][j][l])
+						{
+							newSubSeq[l] = subseqs[i-1][j][l];
+							l++;
+						}
+						newSubSeq[l] = list[k];
+						l++;
+						while(l < i)
+						{
+							newSubSeq[l] = subseqs[i-1][j][l-1];
+							l++;
+						}
+
+						//We must now check that the sequence obtained by adding list[k] to subseqs[i-1][j] (that is newSubSeq) is not already in subseqs[i].
+						bool subSeqExists = false;
+						unsigned a,b;
+						for(a = 0 ; a < nbNewSubSeqs ; a++)
+						{
+							for(b = 0 ; b < i ; b++)
+							{
+								if(subseqs[i][a][b] != newSubSeq[b])
+									break;
+							}
+							if(b == i)
+							{//If the subsequences are the same
+								subSeqExists = true;
+								break;
+							}
+						}
+						if(!subSeqExists)
+						{
+							subseqs[i][nbNewSubSeqs] = newSubSeq;
+							nbNewSubSeqs++;
+						}
+					}
+				}
+			}
+		}
+	}
 	return subseqs;
 }
 

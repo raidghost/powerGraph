@@ -30,17 +30,23 @@ int string2Int(const char *string)
 	return result * sign;
 }
 
-unsigned long binom(unsigned char n, unsigned char k)
+unsigned long binom(unsigned int n, unsigned int k)
 {//Computes n choose k
+	unsigned long i,result;
 	if(k > n)
 		return 0;
 	unsigned long** binom = binomAll(n);
-	return binom[n][k];
+	result = binom[n][k];
+	//We free useless memory
+	for(i = 0 ; i <= n ; i++)
+		free(binom[i]);
+	free(binom);
+	return result;
 }
 
-unsigned long** binomAll(unsigned char n)
+unsigned long** binomAll(unsigned int n)
 {//Computes Pascal's triangle given n.
-	unsigned char i,j;
+	unsigned int i,j;
 	unsigned long** binom = NULL;
 
 	binom = (unsigned long**)malloc((n+1) * sizeof(unsigned long*));
@@ -52,7 +58,8 @@ unsigned long** binomAll(unsigned char n)
 		if(binom[i] == NULL)
 			NO_MEM_LEFT()
 	}
-	for(i = 0 ; i <= n ; i++)
+	binom[0][0] = 1;
+	for(i = 1 ; i <= n ; i++)
 	{
 		binom[i][0] = 1;
 		binom[i][1] = i;
@@ -60,7 +67,7 @@ unsigned long** binomAll(unsigned char n)
 	}
 	for(i = 1 ; i <= n ; i++)
 	{
-		for(j = 1 ; j < i ; j++)
+		for(j = 2 ; j < i ; j++)
 			binom[i][j] = binom[i-1][j-1] + binom[i-1][j];
 	}
 	return binom;
@@ -263,5 +270,24 @@ unsigned long dichoSearchDN(const DN *dn, unsigned int *x, unsigned long begin, 
 			default:
 			return midle;
 		}
+	}
+}
+
+void padiqueExpansion(NUPLE* nuple, unsigned long n, unsigned char p)
+{//Given a non negative integer n, return n written in base p.
+//	padiqueN.length = (unsigned int)floor(log(n)/log(p)) + 1;
+
+	unsigned long i;
+	unsigned long m, power;
+	nuple->tab = (unsigned int*)realloc(nuple->tab, nuple->length * sizeof(unsigned int));
+	if(nuple->tab == NULL)
+		NO_MEM_LEFT()
+	power = pow(p,nuple->length-1);
+	m = nuple->length;
+	for(i = nuple->length ; i > 0 ; i--)
+	{
+		nuple->tab[m-i] = n / power;
+		n -= nuple->tab[m-i] * power;
+		power = power / p;
 	}
 }
