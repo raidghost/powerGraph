@@ -50,6 +50,8 @@ unsigned long rankF2(MATRIX *mat)
 			mat->mat[max] = tmp;
 		}
 		rank++;
+		if(rank == mat->nbRows || rank == mat->nbColumns)
+			return rank;
 		//We xor every line under line i that needs to be xored.
 		for(k = i ; k < mat->nbColumns ; k++)
 		{

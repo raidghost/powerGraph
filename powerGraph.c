@@ -40,7 +40,7 @@ unsigned int testHn(const GRAPH* g, unsigned int nMax, int verbose)
 		//We cannot define Dn hence Mn so we abord.
 			break;
 
-		if(verbose >= 2)
+		if(verbose >= 3)
 		{
 			printf("\nD%d := \n\n", n);
 			displayDn(&dnMoins1);
@@ -51,18 +51,14 @@ unsigned int testHn(const GRAPH* g, unsigned int nMax, int verbose)
 		//We create the matrix Mn
 		mN.nbRows = dnMoins1.nbTuples;
 		mN.nbColumns = dn.nbTuples;
-		if(verbose)
-			printf("La matrice M%d est de taille %ld x %ld\n", n, mN.nbRows, mN.nbColumns);
 		mN.mat = (char**)malloc(mN.nbRows * sizeof(char*));
 		if(mN.mat == NULL)
 			NO_MEM_LEFT()
 		for(i = 0 ; i < mN.nbRows ; i++)
 		{
-			mN.mat[i] = (char*)malloc(mN.nbColumns * sizeof(char));
+			mN.mat[i] = (char*)calloc(mN.nbColumns,sizeof(char));
 			if(mN.mat[i] == NULL)
 				NO_MEM_LEFT()
-			for(j = 0 ; j < mN.nbColumns ; j++)
-				mN.mat[i][j] = 0;
 		}
 		//It's important for Dn and Dn-1 to be lexicographically sorted !
 		for(j = 0 ; j < mN.nbColumns ; j++)
@@ -82,6 +78,8 @@ unsigned int testHn(const GRAPH* g, unsigned int nMax, int verbose)
 			printf("\n\n");
 		}
 		//Beware, computing the rank changes the matrix !
+		if(verbose >= 2)
+			printf("On calcule le rang de M%d qui est de taille %ld x %ld.\n", dn.n, mN.nbRows, mN.nbColumns); 
 		rankMn = rankF2(&mN);
 		if(verbose)
 			printf("\nLe rang de M%d vaut : %ld\n", dn.n, rankMn);
@@ -145,6 +143,7 @@ DN generateDn(const GRAPH* g, unsigned int n)
 		return dn;
 	}
 
+	bool isSequenceNew;
 	unsigned long i,j,k,l,nbNeighbours;
 	unsigned int dnTmp[ARRAY_MAX_LENGTH];
 	unsigned int *tupleTmp = NULL;
@@ -170,7 +169,6 @@ DN generateDn(const GRAPH* g, unsigned int n)
 			subSeqTupleTmp = subSequencesFixedLength(tupleTmp, nbNeighbours, n);
 			//We now add, if needed, the new n-uples to dnTmp
 			unsigned long** bin = binomAll(nbNeighbours);
-			bool isSequenceNew;
 			for(j = 0 ; j < bin[nbNeighbours][n] ; j++)
 			{
 				isSequenceNew = true;
@@ -200,14 +198,34 @@ DN generateDn(const GRAPH* g, unsigned int n)
 			free(subSeqTupleTmp);
 			freeBinomAll(bin, nbNeighbours);
 		}
+		//This else if could be done by the previous if by letting nbNeighbours >= n. However, for performance reason, we prefer not to call subSequencesFixedLength.
 		else if(nbNeighbours == n)
 		{
-			for(k = 0 ; k < n ; k++)
-				dnTmp[nbTuples * n + k] = tupleTmp[k];
-			nbTuples++;
+			//We add the new sequence if needed.
+			isSequenceNew = true;
+			for(k = 0 ; k < nbTuples ; k++)
+			{
+				for(l = 0 ; l < n ; l++)
+				{
+					if(dnTmp[k*n+l] != tupleTmp[l])
+						break;
+				}
+				if(l == n)
+				{//The sequence has already been found.
+					isSequenceNew = false;
+					break;
+				}
+			}
+			if(isSequenceNew)
+			{
+				for(k = 0 ; k < n ; k++)
+					dnTmp[nbTuples * n + k] = tupleTmp[k];
+				nbTuples++;
+			}
 		}
 	}
 	free(tupleTmp);
+
 	//We populate dn
 	dn.n = n;
 	dn.nbTuples = nbTuples;
@@ -318,116 +336,6 @@ unsigned int* subSequencesLengthMoins1(unsigned int list[], unsigned long length
 			{
 				subseqs[i * (length-1) + k] = list[j];
 				k++;
-			}
-		}
-	}
-	return subseqs;
-}
-
-unsigned int*** subSequences(unsigned int list[], unsigned long length)
-{//Computes all the strict subsequences of a list without doublons !
-	unsigned int*** subseqs = NULL;
-	unsigned int* newSubSeq = NULL;
-	unsigned long i,j,k,l;
-	unsigned long** binom = binomAll(length);
-
-	subseqs = (unsigned int***)malloc(length * sizeof(unsigned int**));
-	newSubSeq = (unsigned int*)malloc((length+1) * sizeof(unsigned int));
-
-	if(subseqs == NULL || newSubSeq == NULL)
-		NO_MEM_LEFT()
-	
-	//We can now create the subseqs array of array with good size using binomials.
-	for(i = 0 ; i < length ; i++)
-	{
-		//We know exactly the number of subsequences of size i.
-		subseqs[i] = (unsigned int**)malloc(binom[length][i] * sizeof(unsigned int*));
-		if(subseqs[i] == NULL)
-			NO_MEM_LEFT()
-		for(j = 0 ; j < binom[length][i] ; j++)
-		{
-			subseqs[i][j] = (unsigned int*)malloc((i+1) * sizeof(unsigned int));
-			if(subseqs[i][j] == NULL)
-				NO_MEM_LEFT()
-		}
-
-		if(i == 0)
-		{//There is one subsequence of size 0 : the empty subsequence.
-			subseqs[0] = (unsigned int**)malloc(sizeof(unsigned int*));
-			if(subseqs[0] == NULL)
-				NO_MEM_LEFT()
-			subseqs[0][0] = NULL;
-		}
-		else if(i == 1)
-		{
-			subseqs[1] = (unsigned int**)malloc(length * sizeof(unsigned int*));
-			if(subseqs[1] == NULL)
-				NO_MEM_LEFT()
-			for(j = 0 ; j < length ; j++)
-			{
-				subseqs[1][j] = (unsigned int*)malloc(sizeof(unsigned int));
-				if(subseqs[1][j] == NULL)
-					NO_MEM_LEFT()
-				subseqs[1][j][0] = list[j];
-			}
-		}
-		else
-		{
-			//We look at every subsequences of size i-1.
-			unsigned int nbNewSubSeqs = 0;
-			for(j = 0 ; j < binom[length][i-1] ; j++)
-			{
-				//We look for an element which is not in subseqs[i-1][j].
-				for(k = 0 ; k < length ; k++)
-				{
-					for(l = 0 ; l < i-1 ; l++)
-					{
-						if(list[k] == subseqs[i-1][j][l])
-							break;
-					}
-					if(l == i-1)
-					{//list[k] is not in subseqs[i-1][j]
-						unsigned int a,b;
-						newSubSeq = (unsigned int*)malloc(i * sizeof(unsigned int));
-						if(newSubSeq == NULL)
-							NO_MEM_LEFT()
-						//Now we insert list[k] at the appropriate position in subseqs[i-1][j]
-						l = 0;
-						while(l < i - 1 && list[k] > subseqs[i-1][j][l])
-						{
-							newSubSeq[l] = subseqs[i-1][j][l];
-							l++;
-						}
-						newSubSeq[l] = list[k];
-						l++;
-						while(l < i)
-						{
-							newSubSeq[l] = subseqs[i-1][j][l-1];
-							l++;
-						}
-
-						//We must now check that the sequence obtained by adding list[k] to subseqs[i-1][j] (that is newSubSeq) is not already in subseqs[i].
-						bool subSeqExists = false;
-						for(a = 0 ; a < nbNewSubSeqs ; a++)
-						{
-							for(b = 0 ; b < i ; b++)
-							{
-								if(subseqs[i][a][b] != newSubSeq[b])
-									break;
-							}
-							if(b == i)
-							{//If the subsequences are the same
-								subSeqExists = true;
-								break;
-							}
-						}
-						if(!subSeqExists)
-						{
-							subseqs[i][nbNewSubSeqs] = newSubSeq;
-							nbNewSubSeqs++;
-						}
-					}
-				}
 			}
 		}
 	}
