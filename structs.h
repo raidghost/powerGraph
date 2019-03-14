@@ -12,12 +12,20 @@ struct GRAPH
 	char** mat;
 };
 
-typedef struct MATRIX MATRIX;
-struct MATRIX
+typedef struct MATRIX_F2 MATRIX_F2;
+struct MATRIX_F2
 {
 	unsigned long nbRows;
 	unsigned long nbColumns;
 	char** mat;
+};
+
+typedef struct MATRIX_R MATRIX_R;
+struct MATRIX_R
+{
+	unsigned long nbRows;
+	unsigned long nbColumns;
+	long long** mat;
 };
 
 typedef struct DN DN;

@@ -6,7 +6,7 @@
 
 #define ROW_LENGTH 1000000
 
-unsigned long rankF2(MATRIX *mat)
+unsigned long rankF2(MATRIX_F2 *mat)
 {//This function computes the rank in F2 of a matrix AND CHANGES THIS MATRIX !
 	unsigned long i,j,k,max;
 	unsigned long rank = 0;
@@ -53,39 +53,38 @@ unsigned long rankF2(MATRIX *mat)
 		if(rank == mat->nbRows || rank == mat->nbColumns)
 			return rank;
 		//We xor every line under line i that needs to be xored.
-		for(k = i ; k < mat->nbColumns ; k++)
+		for(j = i + 1 ; j < mat->nbRows ; j++)
 		{
-			for(j = i + 1 ; j < mat->nbRows ; j++)
-			{
-				if(mat->mat[j][firstNonZeroEntry] != 0)
-				{//We have found a non zero coef so we must xor line j !
-					for(k = 0 ; k < mat->nbColumns ; k++)
-						mat->mat[j][k] = (mat->mat[j][k] + mat->mat[i][k]) % 2;
-				}
+			if(mat->mat[j][firstNonZeroEntry] != 0)
+			{//We have found a non zero coef so we must xor line j !
+				for(k = 0 ; k < mat->nbColumns ; k++)
+					mat->mat[j][k] = (mat->mat[j][k] + mat->mat[i][k]) % 2;
 			}
 		}
 	}
 	return rank;
 }
 
-unsigned long rankR(MATRIX* mat)
+unsigned long rankR(MATRIX_R* mat)
 {//-------------------------- Les matrices ont pour coef des chars !!!
-	unsigned long i,j,k,pivot,rank = 0,coef,dimMin;
-	char *tmp = NULL;
+	unsigned long i,j,k,pivot,rank = 0,dimMin;
+	long double coef;
+	//unsigned long coef;
+	long long* tmp = NULL;
 
 	if(mat->nbRows <= mat->nbColumns)
 		dimMin = mat->nbRows;
 	else
 		dimMin = mat->nbColumns;
 
-	for(i = 0 ; i < dimMin ; i++)
+	for(i = 0 ; i < mat->nbRows ; i++)
 	{
 		pivot = i;
-		if(mat->mat[i][i] == 0)
+		if(mat->mat[pivot][pivot] == 0)
 		{//We have to find an other pivot.
 			for(j = i+1 ; j < mat->nbRows ; j++)
 			{
-				if(mat->mat[j][i] != 0)
+				if(mat->mat[j][pivot] != 0)
 				{
 					pivot = j;
 					break;
@@ -101,6 +100,8 @@ unsigned long rankR(MATRIX* mat)
 		if(mat->mat[i][i] != 0)
 		{
 			rank++;
+			if(rank == dimMin)
+				return rank;
 			//We perform, when needed, the gaussian elimination.
 			for(j = i+1 ; j < mat->nbRows ; j++)
 			{

@@ -14,10 +14,9 @@ int main(int argc, char *argv[])
 {
 	//We initiate the pseudo random generator (used in quicksort)
 	srand(time(NULL));
-	if(argc < 4)
+	if(argc < 5)
 	{
-		fprintf(stderr, "Usage : prog GRAPH_FILE n field [-v]\n");
-		fprintf(stdout, "Possible values for field are : F2, R\n");
+		fprintf(stderr, "Usage : prog GRAPH_FILE n field [-v]\nPossible values for field are : F2, R\n");
 		return EXIT_FAILURE;
 	}
 	//Variable to handle verbosity.
@@ -44,8 +43,8 @@ int main(int argc, char *argv[])
 		field = 0;
 	else
 	{
-		fprintf(stdout, "Possible values for field are : F2, R\n");
-		return EXIT_FAILURE;
+		fprintf(stdout, "Possible values for field are : F2, R\nWe use R by default.");
+		field = 0;
 	}
 
 	if(verbose >= 3)

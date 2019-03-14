@@ -16,12 +16,14 @@ unsigned int testHn(const GRAPH* g, const unsigned int nMax, const int field, co
 		return 0;
 	bool goOn = true;
 	unsigned long i,j,k,l;
-	unsigned long rankMn = 0, rankMnMoins1 = 0;
+	unsigned long rankMn = 0, rankMnMoins1 = 0, nbRows, nbColumns;
 	unsigned int n = 0;
 	unsigned int* subseqs = NULL;
 	DN dnMoins1, dn;
-	MATRIX mN;
-	mN.mat = NULL;
+	MATRIX_F2 mNF2;
+	mNF2.mat = NULL;
+	MATRIX_R mNR;
+	mNR.mat = NULL;
 
 	if(nMax <= 1)
 	//We assume the graph to be non empty and conected.
@@ -51,19 +53,40 @@ unsigned int testHn(const GRAPH* g, const unsigned int nMax, const int field, co
 		}
 
 		//We create the matrix Mn
-		mN.nbRows = dnMoins1.nbTuples;
-		mN.nbColumns = dn.nbTuples;
-		mN.mat = (char**)malloc(mN.nbRows * sizeof(char*));
-		if(mN.mat == NULL)
-			NO_MEM_LEFT()
-		for(i = 0 ; i < mN.nbRows ; i++)
+		nbRows = dnMoins1.nbTuples;
+		nbColumns = dn.nbTuples;
+		switch(field)
 		{
-			mN.mat[i] = (char*)calloc(mN.nbColumns,sizeof(char));
-			if(mN.mat[i] == NULL)
+			case 0:
+			mNR.nbRows = nbRows;
+			mNR.nbColumns = nbColumns;
+			mNR.mat = (long long**)malloc(mNR.nbRows * sizeof(long long*));
+			if(mNR.mat == NULL)
 				NO_MEM_LEFT()
+			for(i = 0 ; i < mNR.nbRows ; i++)
+			{
+				mNR.mat[i] = (long long*)calloc(mNR.nbColumns,sizeof(long long));
+				if(mNR.mat[i] == NULL)
+					NO_MEM_LEFT()
+			}
+			break;
+
+			case 2:
+			mNF2.nbRows = dnMoins1.nbTuples;
+			mNF2.nbColumns = dn.nbTuples;
+			mNF2.mat = (char**)malloc(mNF2.nbRows * sizeof(char*));
+			if(mNF2.mat == NULL)
+				NO_MEM_LEFT()
+			for(i = 0 ; i < mNF2.nbRows ; i++)
+			{
+				mNF2.mat[i] = (char*)calloc(mNF2.nbColumns,sizeof(char));
+				if(mNF2.mat[i] == NULL)
+					NO_MEM_LEFT()
+			}
 		}
+
 		//It's important for Dn and Dn-1 to be lexicographically sorted !
-		for(j = 0 ; j < mN.nbColumns ; j++)
+		for(j = 0 ; j < nbColumns ; j++)
 		{
 			subseqs = subSequencesLengthMoins1(dn.tuples[j], dn.n);
 			//For every subsequence of length n-1
@@ -84,9 +107,9 @@ unsigned int testHn(const GRAPH* g, const unsigned int nMax, const int field, co
 						{//If dn.tuples[i][k] is not in subseqs[i]
 
 							if(k % 2 == 0)
-								mN.mat[dichoSearchDN(&dnMoins1, subseqs + i*(dn.n-1), 0, dnMoins1.nbTuples)][j] = 1;
+								mNR.mat[dichoSearchDN(&dnMoins1, subseqs + i*(dn.n-1), 0, dnMoins1.nbTuples)][j] = 1;
 							else
-								mN.mat[dichoSearchDN(&dnMoins1, subseqs + i*(dn.n-1), 0, dnMoins1.nbTuples)][j] = -1;
+								mNR.mat[dichoSearchDN(&dnMoins1, subseqs + i*(dn.n-1), 0, dnMoins1.nbTuples)][j] = -1;
 							break;
 						}
 					}
@@ -95,7 +118,7 @@ unsigned int testHn(const GRAPH* g, const unsigned int nMax, const int field, co
 
 				case 2:
 				for(i = 0 ; i < dn.n ; i++)
-						mN.mat[dichoSearchDN(&dnMoins1, subseqs + i*(dn.n-1), 0, dnMoins1.nbTuples)][j] = 1;
+						mNF2.mat[dichoSearchDN(&dnMoins1, subseqs + i*(dn.n-1), 0, dnMoins1.nbTuples)][j] = 1;
 			}
 			//We free subseq
 			free(subseqs);
@@ -104,21 +127,29 @@ unsigned int testHn(const GRAPH* g, const unsigned int nMax, const int field, co
 		if(verbose >= 3)
 		{
 			printf("\nM%d :=\n", n+1);
-			displayMatrix(&mN);
+			switch(field)
+			{
+				case 0:
+				displayMatrixR(&mNR);
+				break;
+
+				case 2:
+				displayMatrixF2(&mNF2);
+			}
 			printf("\n\n");
 		}
 		//Beware, computing the rank changes the matrix !
 		if(verbose >= 2)
-			printf("On calcule le rang de M%d qui est de taille %ld x %ld.\n", dn.n, mN.nbRows, mN.nbColumns);
+			printf("On calcule le rang de M%d qui est de taille %ld x %ld.\n", dn.n, nbRows, nbColumns);
 
 		switch(field)
 		{//We select the appropriate field.
 			case 0:
-			rankMn = rankR(&mN);
+			rankMn = rankR(&mNR);
 			break;
 
 			case 2:
-			rankMn = rankF2(&mN);
+			rankMn = rankF2(&mNF2);
 		}
 		if(verbose)
 			printf("\nLe rang de M%d vaut : %ld\n", dn.n, rankMn);
@@ -141,11 +172,21 @@ unsigned int testHn(const GRAPH* g, const unsigned int nMax, const int field, co
 		for(k = 0 ; k < dnMoins1.nbTuples ; k++)
 			free(dnMoins1.tuples[k]);
 		free(dnMoins1.tuples);
-		//We free mN
-		for(i = 0 ; i < mN.nbRows ; i++)
-			free(mN.mat[i]);
-		free(mN.mat);
 
+		//We free mN
+		switch(field)
+		{
+			case 0:
+			for(i = 0 ; i < mNR.nbRows ; i++)
+				free(mNR.mat[i]);
+			free(mNR.mat);
+			break;
+
+			case 2:
+			for(i = 0 ; i < mNF2.nbRows ; i++)
+				free(mNF2.mat[i]);
+			free(mNF2.mat);
+		}
 		dnMoins1 = dn;
 	}
 

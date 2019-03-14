@@ -4,6 +4,6 @@
 
 void displayGraph(const GRAPH* g);
 void displayDn(const DN* dn);
-void displayMatrix(const MATRIX* m);
-
+void displayMatrixF2(const MATRIX_F2* m);
+void displayMatrixR(const MATRIX_R* m);
 #endif

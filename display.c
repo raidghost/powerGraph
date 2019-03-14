@@ -30,7 +30,18 @@ void displayDn(const DN* dn)
 	}
 }
 
-void displayMatrix(const MATRIX* m)
+void displayMatrixF2(const MATRIX_F2* m)
+{
+	unsigned long i,j;
+	for(i = 0 ; i < m->nbRows ; i++)
+	{
+		for(j = 0 ; j < m->nbColumns ; j++)
+			printf("%d ", (int)m->mat[i][j]);
+		printf("\n");
+	}
+}
+
+void displayMatrixR(const MATRIX_R* m)
 {
 	unsigned long i,j;
 	for(i = 0 ; i < m->nbRows ; i++)
