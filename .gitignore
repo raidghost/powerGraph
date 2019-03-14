@@ -1,0 +1,5 @@
+*.o
+*.swp
+callgrind*
+__pycache__/*
+main

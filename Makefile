@@ -1,4 +1,5 @@
 OPT=-O3
+#OPT=-g -O0 -fno-inline
 all: main
 
 main: main.o io.o display.o powerGraph.o tools.o rank.o
