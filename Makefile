@@ -3,7 +3,7 @@ OPT=-O3
 all: main
 
 main: main.o io.o display.o powerGraph.o tools.o rank.o
-	gcc main.o io.o display.o powerGraph.o tools.o rank.o -lm -o main
+	gcc main.o io.o display.o powerGraph.o tools.o rank.o -lm -lgmp -o main
 main.o: main.c io.h display.h structs.h powerGraph.h tools.h
 	gcc $(OPT) -c main.c -Wall -Wextra -std=gnu89 -o main.o
 io.o: io.c limits.h structs.h

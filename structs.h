@@ -1,8 +1,7 @@
 #ifndef STRUCTS
 #define STRUCTS
 
-#define TRUE 1
-#define FALSE !TRUE
+#include <gmp.h>
 
 typedef enum {false, true} bool;
 typedef struct GRAPH GRAPH;
@@ -18,6 +17,14 @@ struct MATRIX
 	unsigned long nbRows;
 	unsigned long nbColumns;
 	char** mat;
+};
+
+typedef struct MATRIX_MPZ MATRIX_MPZ;
+struct MATRIX_MPZ
+{
+	unsigned long nbRows;
+	unsigned long nbColumns;
+	mpz_t* mat;
 };
 
 typedef struct DN DN;

@@ -14,11 +14,12 @@ unsigned int testHn(const GRAPH* g, unsigned int nMax, int verbose)
 {//This function tests until which nMin <= n <= nMax the hypothesis Hm holds for the graph g.
 	bool goOn = true;
 	unsigned long i,j,k;
-	unsigned long rankMn = 0, rankMnMoins1 = 0;
+	unsigned long rankMn = 0, rankMnMoins1 = 0, rankMnMpz = 0;
 	unsigned int n = 0;
 	unsigned int* subseqs = NULL;
 	DN dnMoins1, dn;
 	MATRIX mN;
+	MATRIX_MPZ mNMpz;
 	mN.mat = NULL;
 
 	if(nMax <= 1)
@@ -51,6 +52,7 @@ unsigned int testHn(const GRAPH* g, unsigned int nMax, int verbose)
 		//We create the matrix Mn
 		mN.nbRows = dnMoins1.nbTuples;
 		mN.nbColumns = dn.nbTuples;
+
 		mN.mat = (char**)malloc(mN.nbRows * sizeof(char*));
 		if(mN.mat == NULL)
 			NO_MEM_LEFT()
@@ -77,10 +79,18 @@ unsigned int testHn(const GRAPH* g, unsigned int nMax, int verbose)
 			displayMatrix(&mN);
 			printf("\n\n");
 		}
+
+		//MPZ
+		mNMpz = matrix2Mpz(&mN);
+		printMatrixMpz(&mNMpz);
 		//Beware, computing the rank changes the matrix !
 		if(verbose >= 2)
-			printf("On calcule le rang de M%d qui est de taille %ld x %ld.\n", dn.n, mN.nbRows, mN.nbColumns); 
+			printf("On calcule le rang de M%d qui est de taille %ld x %ld.\n", dn.n, mN.nbRows, mN.nbColumns);
+
 		rankMn = rankF2(&mN);
+		//MPZ
+		rankMnMpz = rankF2Mpz(&mNMpz);
+		printf("rang M%d = %ld et rang mpz = %ld\n", n, rankMn, rankMnMpz);
 		if(verbose)
 			printf("\nLe rang de M%d vaut : %ld\n", dn.n, rankMn);
 
