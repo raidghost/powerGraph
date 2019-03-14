@@ -10,10 +10,12 @@
 #include "powerGraph.h"
 #include "rank.h"
 
-unsigned int testHn(const GRAPH* g, unsigned int nMax, int verbose)
+unsigned int testHn(const GRAPH* g, const unsigned int nMax, const int field, const int verbose)
 {//This function tests until which nMin <= n <= nMax the hypothesis Hm holds for the graph g.
+	if(field != 0 && field != 2)
+		return 0;
 	bool goOn = true;
-	unsigned long i,j,k;
+	unsigned long i,j,k,l;
 	unsigned long rankMn = 0, rankMnMoins1 = 0;
 	unsigned int n = 0;
 	unsigned int* subseqs = NULL;
@@ -65,8 +67,36 @@ unsigned int testHn(const GRAPH* g, unsigned int nMax, int verbose)
 		{
 			subseqs = subSequencesLengthMoins1(dn.tuples[j], dn.n);
 			//For every subsequence of length n-1
-			for(i = 0 ; i < dn.n ; i++)
-					mN.mat[dichoSearchDN(&dnMoins1, subseqs + i*(dn.n-1), 0, dnMoins1.nbTuples)][j] = 1;
+			switch(field)
+			{
+				case 0://If the field is R, we have to deal with orientation.
+				for(i = 0 ; i < dn.n ; i++)
+				{
+					//We find the first index in dn.tuples[j] but not in subseq[i].
+					for(k = 0 ; k < dn.n ; k++)
+					{
+						for(l = 0 ; l < dn.n-1 ; l++)
+						{
+							if(subseqs[i*(dn.n-1) + l] == dn.tuples[j][k])
+								break;
+						}
+						if(l == dn.n-1)
+						{//If dn.tuples[i][k] is not in subseqs[i]
+
+							if(k % 2 == 0)
+								mN.mat[dichoSearchDN(&dnMoins1, subseqs + i*(dn.n-1), 0, dnMoins1.nbTuples)][j] = 1;
+							else
+								mN.mat[dichoSearchDN(&dnMoins1, subseqs + i*(dn.n-1), 0, dnMoins1.nbTuples)][j] = -1;
+							break;
+						}
+					}
+				}
+				break;
+
+				case 2:
+				for(i = 0 ; i < dn.n ; i++)
+						mN.mat[dichoSearchDN(&dnMoins1, subseqs + i*(dn.n-1), 0, dnMoins1.nbTuples)][j] = 1;
+			}
 			//We free subseq
 			free(subseqs);
 		}
@@ -79,8 +109,17 @@ unsigned int testHn(const GRAPH* g, unsigned int nMax, int verbose)
 		}
 		//Beware, computing the rank changes the matrix !
 		if(verbose >= 2)
-			printf("On calcule le rang de M%d qui est de taille %ld x %ld.\n", dn.n, mN.nbRows, mN.nbColumns); 
-		rankMn = rankF2(&mN);
+			printf("On calcule le rang de M%d qui est de taille %ld x %ld.\n", dn.n, mN.nbRows, mN.nbColumns);
+
+		switch(field)
+		{//We select the appropriate field.
+			case 0:
+			rankMn = rankR(&mN);
+			break;
+
+			case 2:
+			rankMn = rankF2(&mN);
+		}
 		if(verbose)
 			printf("\nLe rang de M%d vaut : %ld\n", dn.n, rankMn);
 

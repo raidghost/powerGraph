@@ -68,36 +68,48 @@ unsigned long rankF2(MATRIX *mat)
 	return rank;
 }
 
-unsigned long rankZ(long **matrix, const unsigned long SIZE){
-	unsigned long i,j,k,pivot;
-	unsigned long rank = 0;
-	long coef = 0;
-	long *tmp = NULL;
+unsigned long rankR(MATRIX* mat)
+{//-------------------------- Les matrices ont pour coef des chars !!!
+	unsigned long i,j,k,pivot,rank = 0,coef,dimMin;
+	char *tmp = NULL;
 
-	for(i = 0 ; i < SIZE ; i++){
-		if(matrix[i][i] == 0){
-			pivot = i;
-			for(j = i+1 ; j < SIZE ; j++){
-				if(matrix[j][i] != 0){
+	if(mat->nbRows <= mat->nbColumns)
+		dimMin = mat->nbRows;
+	else
+		dimMin = mat->nbColumns;
+
+	for(i = 0 ; i < dimMin ; i++)
+	{
+		pivot = i;
+		if(mat->mat[i][i] == 0)
+		{//We have to find an other pivot.
+			for(j = i+1 ; j < mat->nbRows ; j++)
+			{
+				if(mat->mat[j][i] != 0)
+				{
 					pivot = j;
 					break;
 				}
 			}
-			if(pivot == i)
-			/*We have already reached the rank.*/
-				break;
-			else{
-				tmp = matrix[i];
-				matrix[i] = matrix[pivot];
-				matrix[pivot] = tmp;
-				rank++;
+			if(pivot != i)
+			{//We put the pivot line at position i.
+				tmp = mat->mat[i];
+				mat->mat[i] = mat->mat[pivot];
+				mat->mat[pivot] = tmp;
 			}
 		}
-		for(j = i+1 ; j < SIZE ; j++){
-			if(matrix[j][i] != 0){
-				coef = matrix[j][i] / matrix[i][i];
-				for(k = i ; k < SIZE ; k++){
-					matrix[j][k] += coef * matrix[i][k];
+		if(mat->mat[i][i] != 0)
+		{
+			rank++;
+			//We perform, when needed, the gaussian elimination.
+			for(j = i+1 ; j < mat->nbRows ; j++)
+			{
+				if(mat->mat[j][i] != 0)
+				{
+					coef = mat->mat[j][i] / mat->mat[i][i];
+					for(k = i ; k < mat->nbColumns ; k++)
+						//----------------------- Cast de bourrin ici !
+						mat->mat[j][k] -= coef * mat->mat[i][k];
 				}
 			}
 		}
