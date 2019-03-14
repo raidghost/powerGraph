@@ -66,25 +66,25 @@ unsigned long rankF2(MATRIX_F2 *mat)
 }
 
 unsigned long rankR(MATRIX_R* mat)
-{//-------------------------- Les matrices ont pour coef des chars !!!
+{
 	unsigned long i,j,k,pivot,rank = 0,dimMin;
 	long double coef;
 	//unsigned long coef;
-	long long* tmp = NULL;
+	long double* tmp = NULL;
 
 	if(mat->nbRows <= mat->nbColumns)
 		dimMin = mat->nbRows;
 	else
 		dimMin = mat->nbColumns;
 
-	for(i = 0 ; i < mat->nbRows ; i++)
+	for(i = 0 ; i < dimMin ; i++)
 	{
 		pivot = i;
-		if(mat->mat[pivot][pivot] == 0)
+		if(mat->mat[i][i] == 0)
 		{//We have to find an other pivot.
 			for(j = i+1 ; j < mat->nbRows ; j++)
 			{
-				if(mat->mat[j][pivot] != 0)
+				if(mat->mat[j][i] != 0)
 				{
 					pivot = j;
 					break;
@@ -98,7 +98,7 @@ unsigned long rankR(MATRIX_R* mat)
 			}
 		}
 		if(mat->mat[i][i] != 0)
-		{
+		{//Otherwise this line has only zeros.
 			rank++;
 			if(rank == dimMin)
 				return rank;

@@ -25,7 +25,7 @@ struct MATRIX_R
 {
 	unsigned long nbRows;
 	unsigned long nbColumns;
-	long long** mat;
+	long double** mat;
 };
 
 typedef struct DN DN;

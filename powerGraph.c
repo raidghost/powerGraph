@@ -60,12 +60,12 @@ unsigned int testHn(const GRAPH* g, const unsigned int nMax, const int field, co
 			case 0:
 			mNR.nbRows = nbRows;
 			mNR.nbColumns = nbColumns;
-			mNR.mat = (long long**)malloc(mNR.nbRows * sizeof(long long*));
+			mNR.mat = (long double**)malloc(mNR.nbRows * sizeof(long double*));
 			if(mNR.mat == NULL)
 				NO_MEM_LEFT()
 			for(i = 0 ; i < mNR.nbRows ; i++)
 			{
-				mNR.mat[i] = (long long*)calloc(mNR.nbColumns,sizeof(long long));
+				mNR.mat[i] = (long double*)calloc(mNR.nbColumns,sizeof(long double));
 				if(mNR.mat[i] == NULL)
 					NO_MEM_LEFT()
 			}
