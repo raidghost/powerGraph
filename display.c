@@ -47,7 +47,12 @@ void displayMatrixR(const MATRIX_R* m)
 	for(i = 0 ; i < m->nbRows ; i++)
 	{
 		for(j = 0 ; j < m->nbColumns ; j++)
-			printf("%d ", (int)m->mat[i][j]);
+		{
+			if(m->mat[i][j] < 0)
+				printf("%Lf ", m->mat[i][j]);
+			else
+				printf(" %Lf ", m->mat[i][j]);
+		}
 		printf("\n");
 	}
 }

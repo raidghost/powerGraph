@@ -108,10 +108,13 @@ unsigned long rankR(MATRIX_R* mat)
 				if(mat->mat[j][i] != 0)
 				{
 					coef = mat->mat[j][i] / mat->mat[i][i];
+			//		printf("coef = %Lf et mat[j][i] = %Lf et mat[i][i] = %Lf\n", coef, mat->mat[j][i], mat->mat[i][i]);
 					for(k = i ; k < mat->nbColumns ; k++)
 						//----------------------- Cast de bourrin ici !
 						mat->mat[j][k] -= coef * mat->mat[i][k];
 				}
+			//	displayMatrixR(mat);
+			//	printf("\n\n");
 			}
 		}
 	}
