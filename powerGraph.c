@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <gmp.h>
 
 #include "structs.h"
 #include "limits.h"
@@ -60,14 +61,16 @@ unsigned int testHn(const GRAPH* g, const unsigned int nMax, const int field, co
 			case 0:
 			mNR.nbRows = nbRows;
 			mNR.nbColumns = nbColumns;
-			mNR.mat = (long double**)malloc(mNR.nbRows * sizeof(long double*));
+			mNR.mat = (mpq_t**)malloc(mNR.nbRows * sizeof(mpq_t*));
 			if(mNR.mat == NULL)
 				NO_MEM_LEFT()
 			for(i = 0 ; i < mNR.nbRows ; i++)
 			{
-				mNR.mat[i] = (long double*)calloc(mNR.nbColumns,sizeof(long double));
+				mNR.mat[i] = (mpq_t*)malloc(mNR.nbColumns * sizeof(mpq_t));
 				if(mNR.mat[i] == NULL)
 					NO_MEM_LEFT()
+				for(j = 0 ; j < mNR.nbColumns ; j++)
+					mpq_init(mNR.mat[i][j]);
 			}
 			break;
 
@@ -107,9 +110,9 @@ unsigned int testHn(const GRAPH* g, const unsigned int nMax, const int field, co
 						{//If dn.tuples[i][k] is not in subseqs[i]
 
 							if(k % 2 == 0)
-								mNR.mat[dichoSearchDN(&dnMoins1, subseqs + i*(dn.n-1), 0, dnMoins1.nbTuples)][j] = 1;
+								mpq_set_si(mNR.mat[dichoSearchDN(&dnMoins1, subseqs + i*(dn.n-1), 0, dnMoins1.nbTuples)][j],1,1);
 							else
-								mNR.mat[dichoSearchDN(&dnMoins1, subseqs + i*(dn.n-1), 0, dnMoins1.nbTuples)][j] = -1;
+								mpq_set_si(mNR.mat[dichoSearchDN(&dnMoins1, subseqs + i*(dn.n-1), 0, dnMoins1.nbTuples)][j],-1,1);
 							break;
 						}
 					}
@@ -178,7 +181,11 @@ unsigned int testHn(const GRAPH* g, const unsigned int nMax, const int field, co
 		{
 			case 0:
 			for(i = 0 ; i < mNR.nbRows ; i++)
+			{
+				for(j = 0 ; j < mNR.nbColumns ; j++)
+					mpq_clear(mNR.mat[i][j]);
 				free(mNR.mat[i]);
+			}
 			free(mNR.mat);
 			break;
 

@@ -48,10 +48,10 @@ void displayMatrixR(const MATRIX_R* m)
 	{
 		for(j = 0 ; j < m->nbColumns ; j++)
 		{
-			if(m->mat[i][j] < 0)
-				printf("%Lf ", m->mat[i][j]);
+			if(mpq_cmp_ui(m->mat[i][j],0,1) < 0)
+				gmp_printf("%Qd ", m->mat[i][j]);
 			else
-				printf(" %Lf ", m->mat[i][j]);
+				gmp_printf(" %Qd ", m->mat[i][j]);
 		}
 		printf("\n");
 	}

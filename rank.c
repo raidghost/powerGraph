@@ -4,6 +4,8 @@
 #include "io.h"
 #include "structs.h"
 
+//#include "display.h"
+
 #define ROW_LENGTH 1000000
 
 unsigned long rankF2(MATRIX_F2 *mat)
@@ -68,10 +70,11 @@ unsigned long rankF2(MATRIX_F2 *mat)
 unsigned long rankR(MATRIX_R* mat)
 {
 	unsigned long i,j,k,pivot,rank = 0,dimMin;
-	long double coef;
-	//unsigned long coef;
-	long double* tmp = NULL;
+	mpq_t zero,coef,prodTmp;
+	mpq_t* tmp = NULL;
 
+
+	mpq_inits(zero,coef,prodTmp,NULL);
 	if(mat->nbRows <= mat->nbColumns)
 		dimMin = mat->nbRows;
 	else
@@ -80,12 +83,12 @@ unsigned long rankR(MATRIX_R* mat)
 	for(i = 0 ; i < dimMin ; i++)
 	{
 		pivot = i;
-		if(mat->mat[i][i] == 0)
-		{//We have to find an other pivot.
+		if(mpq_equal(mat->mat[i][i],zero))
+		{//If mat[i][i] == 0, We have to find an other pivot.
 			for(j = i+1 ; j < mat->nbRows ; j++)
 			{
-				if(mat->mat[j][i] != 0)
-				{
+				if(!mpq_equal(mat->mat[j][i],zero))
+				{//If mat[j][i] != 0
 					pivot = j;
 					break;
 				}
@@ -97,26 +100,28 @@ unsigned long rankR(MATRIX_R* mat)
 				mat->mat[pivot] = tmp;
 			}
 		}
-		if(mat->mat[i][i] != 0)
+		if(!mpq_equal(mat->mat[i][i],zero))
 		{//Otherwise this line has only zeros.
 			rank++;
 			if(rank == dimMin)
-				return rank;
+				break;
 			//We perform, when needed, the gaussian elimination.
 			for(j = i+1 ; j < mat->nbRows ; j++)
 			{
-				if(mat->mat[j][i] != 0)
+				if(!mpq_equal(mat->mat[j][i],zero))
 				{
-					coef = mat->mat[j][i] / mat->mat[i][i];
-			//		printf("coef = %Lf et mat[j][i] = %Lf et mat[i][i] = %Lf\n", coef, mat->mat[j][i], mat->mat[i][i]);
+					mpq_div(coef,mat->mat[j][i],mat->mat[i][i]);
 					for(k = i ; k < mat->nbColumns ; k++)
-						//----------------------- Cast de bourrin ici !
-						mat->mat[j][k] -= coef * mat->mat[i][k];
+					{
+						mpq_mul(prodTmp,coef,mat->mat[i][k]);
+						mpq_sub(mat->mat[j][k],mat->mat[j][k],prodTmp);
+					}
 				}
-			//	displayMatrixR(mat);
-			//	printf("\n\n");
+			/*	displayMatrixR(mat);
+				printf("\n\n");*/
 			}
 		}
 	}
+	mpq_clears(zero,coef,prodTmp,NULL);
 	return rank;
 }
