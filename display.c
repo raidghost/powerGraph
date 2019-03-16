@@ -59,32 +59,16 @@ void displayMatrixF2(const MATRIX_F2* m)
 
 void displayMatrixR(const MATRIX_R* m)
 {
-	FILE *f = fopen("matrix", "w");
 	unsigned long i,j;
-
-	fprintf(f, "%ld %ld\n", m->nbRows, m->nbColumns);
 	for(i = 0 ; i < m->nbRows ; i++)
 	{
 		for(j = 0 ; j < m->nbColumns ; j++)
 		{
 			if(mpq_cmp_ui(m->mat[i][j],0,1) < 0)
-			{
-				//gmp_printf("%Qd ", m->mat[i][j]);
-				fputs("-1 ", f);
-			}
-			else if(mpq_cmp_ui(m->mat[i][j],0,1) > 0)
-			{
-				//gmp_printf(" %Qd ", m->mat[i][j]);
-				fputs("1 ", f);
-			}
+				gmp_printf("%Qd ", m->mat[i][j]);
 			else
-			{
-				//printf("0 ");
-				fputs("0 ", f);
-			}
+				gmp_printf(" %Qd ", m->mat[i][j]);
 		}
-		fputc('\n', f);
-		//printf("\n");
+		printf("\n");
 	}
-	fclose(f);
 }

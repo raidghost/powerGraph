@@ -4,8 +4,6 @@
 #include "io.h"
 #include "structs.h"
 
-#include "display.h"
-
 #define ROW_LENGTH 1000000
 
 unsigned long rankF2(MATRIX_F2 *mat)
@@ -125,8 +123,6 @@ unsigned long rankR(MATRIX_R* mat)
 			//Since we have performed gaussian elimination, we increment both i and j (see below).
 			i++;
 		}
-//				displayMatrixR(mat);
-//				printf("i = %ld\n\n", i);
 		//In any case we try 
 		j++;
 	}

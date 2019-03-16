@@ -149,8 +149,6 @@ unsigned int testHn(const GRAPH* g, const unsigned int nMax, const int field, co
 		switch(field)
 		{//We select the appropriate field.
 			case 0:
-			printf("Pause\n");
-			getchar();
 			rankMn = rankR(&mNR);
 			break;
 
