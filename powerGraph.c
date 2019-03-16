@@ -20,6 +20,7 @@ unsigned int testHn(const GRAPH* g, const unsigned int nMax, const int field, co
 	unsigned long rankMn = 0, rankMnMoins1 = 0, nbRows, nbColumns;
 	unsigned int n = 0;
 	unsigned int* subseqs = NULL;
+
 	DN dnMoins1, dn;
 	MATRIX_F2 mNF2;
 	mNF2.mat = NULL;
@@ -148,6 +149,8 @@ unsigned int testHn(const GRAPH* g, const unsigned int nMax, const int field, co
 		switch(field)
 		{//We select the appropriate field.
 			case 0:
+			printf("Pause\n");
+			getchar();
 			rankMn = rankR(&mNR);
 			break;
 

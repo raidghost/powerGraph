@@ -4,7 +4,7 @@
 #include "io.h"
 #include "structs.h"
 
-//#include "display.h"
+#include "display.h"
 
 #define ROW_LENGTH 1000000
 
@@ -69,58 +69,66 @@ unsigned long rankF2(MATRIX_F2 *mat)
 
 unsigned long rankR(MATRIX_R* mat)
 {
-	unsigned long i,j,k,pivot,rank = 0,dimMin;
+	unsigned long i,j,k,l,pivotRow,rank,dimMin;
 	mpq_t zero,coef,prodTmp;
 	mpq_t* tmp = NULL;
 
 
 	mpq_inits(zero,coef,prodTmp,NULL);
-	if(mat->nbRows <= mat->nbColumns)
+
+	if(mat->nbRows < mat->nbColumns)
 		dimMin = mat->nbRows;
 	else
 		dimMin = mat->nbColumns;
 
-	for(i = 0 ; i < dimMin ; i++)
+	i = 0;
+	j = 0;
+	rank = 0;
+	while(i < mat->nbRows && j < mat->nbColumns)
 	{
-		pivot = i;
-		if(mpq_equal(mat->mat[i][i],zero))
-		{//If mat[i][i] == 0, We have to find an other pivot.
-			for(j = i+1 ; j < mat->nbRows ; j++)
+		if(mpq_equal(mat->mat[i][j],zero))
+		{//If mat[i][j] == 0, we have to find an other pivot. We try on column j.
+			pivotRow = i;
+			for(k = i+1 ; k < mat->nbRows ; k++)
 			{
-				if(!mpq_equal(mat->mat[j][i],zero))
-				{//If mat[j][i] != 0
-					pivot = j;
+				if(!mpq_equal(mat->mat[k][j],zero))
+				{//If mat[k][j] != 0
+					pivotRow = k;
 					break;
 				}
 			}
-			if(pivot != i)
+			if(pivotRow > i)
 			{//We put the pivot line at position i.
 				tmp = mat->mat[i];
-				mat->mat[i] = mat->mat[pivot];
-				mat->mat[pivot] = tmp;
+				mat->mat[i] = mat->mat[pivotRow];
+				mat->mat[pivotRow] = tmp;
 			}
 		}
-		if(!mpq_equal(mat->mat[i][i],zero))
+		if(!mpq_equal(mat->mat[i][j],zero))
 		{//Otherwise this line has only zeros.
 			rank++;
 			if(rank == dimMin)
 				break;
 			//We perform, when needed, the gaussian elimination.
-			for(j = i+1 ; j < mat->nbRows ; j++)
+			for(k = i+1 ; k < mat->nbRows ; k++)
 			{
-				if(!mpq_equal(mat->mat[j][i],zero))
+				if(!mpq_equal(mat->mat[k][j],zero))
 				{
-					mpq_div(coef,mat->mat[j][i],mat->mat[i][i]);
-					for(k = i ; k < mat->nbColumns ; k++)
+					mpq_div(coef,mat->mat[k][j],mat->mat[i][j]);
+					for(l = j ; l < mat->nbColumns ; l++)
 					{
-						mpq_mul(prodTmp,coef,mat->mat[i][k]);
-						mpq_sub(mat->mat[j][k],mat->mat[j][k],prodTmp);
+						mpq_mul(prodTmp,coef,mat->mat[i][l]);
+						mpq_sub(mat->mat[k][l],mat->mat[k][l],prodTmp);
 					}
 				}
-			/*	displayMatrixR(mat);
-				printf("\n\n");*/
 			}
+			//Since we have performed gaussian elimination, we increment both i and j (see below).
+			i++;
 		}
+//				displayMatrixR(mat);
+//				printf("i = %ld\n\n", i);
+		//In any case we try 
+		j++;
 	}
 	mpq_clears(zero,coef,prodTmp,NULL);
 	return rank;
