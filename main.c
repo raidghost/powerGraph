@@ -6,7 +6,7 @@
 #include "io.h"
 #include "display.h"
 #include "structs.h"
-#include "powerGraph.h"
+#include "homology.h"
 #include "tools.h"
 #include "rank.h"
 

@@ -53,6 +53,30 @@ def powerN(graph,n,k):
                                             powerGraph[newVertices[p]].append(newVertices[m])
                                         if newVertices[p] not in powerGraph[newVertices[m]]:
                                             powerGraph[newVertices[m]].append(newVertices[p])
-                                            
+            elif len([i for i in w if i != 0]) == k-2:
+            #If the support is exactly k-2
+                for i in range(nbVertices):
+                    if w[i] == 0:
+                        for j in range(i+1,nbVertices):
+                            if w[j] == 0 and j+1 in graph[i+1]:
+                            #For all edge which support does not intersect the support of w.
+                                u = i * (0,) + (1,) + (nbVertices -1 -i) * (0,)
+                                v = j * (0,) + (1,) + (nbVertices -1 -j) * (0,)
+                                direction = ()
+                                for l in range(nbVertices):
+                                    direction += (v[l] - u[l],)
+                                newVertices = n * [()]
+                                newVertices[0] = w
+                                for m in range(1,n):
+                                    for l in range(nbVertices):
+                                        newVertices[m] += ((newVertices[m-1][l] + direction[l]) %n,)
+                                    if newVertices[m] not in powerGraph:
+                                        powerGraph[newVertices[m]] = []
+                                for m in range(n):
+                                    for p in range(m+1,n):
+                                        if newVertices[m] not in powerGraph[newVertices[p]]:
+                                            powerGraph[newVertices[p]].append(newVertices[m])
+                                        if newVertices[p] not in powerGraph[newVertices[m]]:
+                                            powerGraph[newVertices[m]].append(newVertices[p])
     orderGraph(powerGraph)
     return powerGraph
