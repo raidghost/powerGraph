@@ -1,6 +1,6 @@
 #ifndef POWERGRAPH
 #define POWERGRAPH
 
-GRAPH genPowerGraph(GRAPH g, unsigned int p, unsigned int nbVertices, unsigned int supportMax);
+GRAPH_LIST* genPowerGraph(GRAPH* g, unsigned int p, unsigned int supportMax);
 
 #endif

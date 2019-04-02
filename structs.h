@@ -42,4 +42,13 @@ struct NUPLE
 	unsigned int* tab;
 };
 
+typedef struct GRAPH_LIST GRAPH_LIST;
+struct GRAPH_LIST
+{
+	GRAPH_LIST *next;
+	NUPLE v;
+	unsigned int nbNeighbours;
+	GRAPH_LIST **neighbours;
+};
+
 #endif

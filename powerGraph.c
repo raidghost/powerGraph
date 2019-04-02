@@ -2,75 +2,78 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include "display.h"
+#include "io.h"
+#include "graphList.h"
+#include "powerGraph.h"
 #include "structs.h"
 #include "tools.h"
-#include "io.h"
 
-void nupleReset(const NUPLE *nuple)
+
+GRAPH_LIST* genPowerGraph(GRAPH* g, unsigned int p, unsigned int supportMax)
 {
-	unsigned int i;
-	for(i = 0 ; i < nuple->length ; i++)
-		nuple->tab[i] = 0;
-}
-
-void padiquePP(const NUPLE *nuple, const unsigned int basis)
-{//Add 1 to a number in basis "basis".
-	if(basis == 0)
-		return;
-	unsigned int k = 0;
-	for(k = 0 ; k < nuple->length && nuple->tab[k] == basis ; k++);
-	if(k == nuple->length)
-		nupleReset(nuple);
-	else
-		nuple->tab[k]++;
-}
-
-GRAPH genPowerGraph(GRAPH *g, unsigned int p, unsigned int supportMax)
-{//Generate the graph n^g (which mean modulo n and not in the field with n elements (if such a field exists...).
-	if(g->nbVertices == 0)
-		exit(EXIT_FAILURE);
-	if(supportMax > g->nbVertices || supportMax == 0)
+	if(g == NULL)
+		return NULL;
+	if(supportMax > g->nbVertices)
 		supportMax = g->nbVertices;
+
 	unsigned long i,j,k,l;
-	unsigned long power = 1;
-	unsigned long** binom = binomAll(g->nbVertices);
-	GRAPH powerGraph;
-	NUPLE nuple;
+	unsigned long nbVertices = 0;
+	GRAPH_LIST* powerGraph = NULL;
+	unsigned int nonZeroEntriesCurrentVertex = 0;
+	unsigned long nbVerticesTotal = pow(p,g->nbVertices - 1);
+	NUPLE currentVertex, vertex2Add;
 
-	powerGraph.nbVertices = binom[g->nbVertices][supportMax] * (unsigned long)pow((double)p,(double)(supportMax - 1));
-	//We initiate a nuple that will be useful next.
-	nuple.length = supportMax - 1;
-	nupleReset(&nuple);
-
-	//Initialization of the powerGraph
-	powerGraph.mat = (char**)malloc(powerGraph.nbVertices * sizeof(char*));
-	if(powerGraph.mat == NULL)
+	currentVertex.length = g->nbVertices - 1;
+	currentVertex.tab = (unsigned int*)calloc(currentVertex.length, currentVertex.length * sizeof(unsigned int));
+	vertex2Add.tab = (unsigned int*)malloc(vertex2Add.length * sizeof(unsigned int));
+	if(vertex2Add.tab == NULL)
 		NO_MEM_LEFT()
-	for(i = 0 ; i < g->nbVertices ; i++)
+
+	if(currentVertex.tab == NULL)
+		NO_MEM_LEFT()
+
+	vertex2Add.length = g->nbVertices;
+	for(i = 0 ; i < nbVerticesTotal ; i++)
 	{
-		powerGraph.mat[i] = (char*)calloc(powerGraph.nbVertices, powerGraph.nbVertices * sizeof(char));
-		if(powerGraph.mat[i] == NULL)
-			NO_MEM_LEFT()
-	}
-	
-	//We choose k positions.
-	for(k = 0 ; k < supportMax ; k++)
-	{
-		//We choose k values.
-		for(j = 0 ; j < binom[supportMax][k] ; j++)
+		//displayNuple(&currentVertex);
+		//printf("\n");
+		if(nonZeroEntriesCurrentVertex < supportMax)
 		{
-			for(i = 0 ; i < power - 1 ; i++)
+			for(j = 0 ; j <= currentVertex.length ; j++)
 			{
-				for(l = 0 ; l < k ; l++)
-					powerGraph.mat[j][l] = 1;
+				unsigned int sumCurrentVertex = 0;
+				for(k = 0 ; k < j ; k++)
+				{
+					vertex2Add.tab[k] = currentVertex.tab[k];
+					sumCurrentVertex += currentVertex.tab[k];
+				}
+				for(k = j+1 ; k < vertex2Add.length ; k++)
+				{
+					vertex2Add.tab[k] = currentVertex.tab[k-1];
+					sumCurrentVertex += currentVertex.tab[k-1];
+				}
+				//We consider the connected component of p^G that sums to 1 (mod p).
+				vertex2Add.tab[j] = (p+1 - sumCurrentVertex % p) % p;
+				powerGraph = addVertex(powerGraph, &vertex2Add);
 			}
 		}
-
+		//We add 1 to currentVertex.
+		for(j = 0 ; j < currentVertex.length && currentVertex.tab[j] == p-1 ; j++);
+		if(j < currentVertex.length)
+		{
+			if(currentVertex.tab[j] == 0)
+				nonZeroEntriesCurrentVertex++;
+			currentVertex.tab[j]++;
+		}
+		for(k = 0 ; k < j ; k++)
+		{
+			currentVertex.tab[k] = 0;
+			nonZeroEntriesCurrentVertex--;
+		}
 	}
 
-	//We have no choice for the last value since the sum of the coefficients must be 1.
-	
+	free(currentVertex.tab);
+	free(vertex2Add.tab);
 	return powerGraph;
 }
-
-

@@ -1,5 +1,5 @@
-#ifndef POWERGRAPH
-#define POWERGRAPH
+#ifndef HOMOLOGY
+#define HOMOLOGY
 
 #include "structs.h"
 

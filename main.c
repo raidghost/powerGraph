@@ -10,6 +10,10 @@
 #include "tools.h"
 #include "rank.h"
 
+#include "powerGraph.h"
+#include "graphList.h"
+
+//GRAPH_LIST* genPowerGraph(GRAPH* g, unsigned int p, unsigned int supportMax);
 int main(int argc, char *argv[])
 {
 	//We initiate the pseudo random generator (used in quicksort)
@@ -49,7 +53,39 @@ int main(int argc, char *argv[])
 
 	if(verbose >= 3)
 		displayGraph(&g);
-	printf("Hn est vraie jusqu'à n = %d\n", testHn(&g, n, field, verbose));
+//	printf("Hn est vraie jusqu'à n = %d\n", testHn(&g, n, field, verbose));
+	GRAPH_LIST *graphL = NULL;
+	graphL = genPowerGraph(&g, 3, 3);
+	displayGraphList(graphL);
 	freeGraph(&g);
+/*	NUPLE u,v,w;
+	v.length = 3;
+	v.tab = (unsigned int*)malloc(3 * sizeof(unsigned int));
+	v.tab[0] = 1;
+	v.tab[1] = 2;
+	v.tab[2] = 3;
+	GRAPH_LIST *g = NULL;
+	g = addVertex(g, v);
+	u.length = 3;
+	u.tab = (unsigned int*)malloc(3 * sizeof(unsigned int));
+	u.tab[0] = 3;
+	u.tab[1] = 1;
+	u.tab[2] = 1;
+
+	w.length = 3;
+	w.tab = (unsigned int*)malloc(3 * sizeof(unsigned int));
+	w.tab[0] = 1;
+	w.tab[1] = 2;
+	w.tab[2] = 4;
+
+	g = addVertex(g,u);
+	g = addVertex(g,w);
+	displayGraphList(g);
+	if(searchVertex(g, w))
+		printf("On a trouvé le sommet à l'adresse %p\n", searchVertex(g, w));
+	else
+		printf("bug");*/
+
+	freeGraphList(graphL);
 	return EXIT_SUCCESS;
 }

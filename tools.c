@@ -94,6 +94,24 @@ int nuplecmp(unsigned int *nuple1, unsigned int *nuple2, unsigned int n)
 	return 0;
 }
 
+int nupleCmp(NUPLE *n1, NUPLE *n2)
+{//Returns 0 if n1 == n2, -1 if n1 < n2 and +1 if n1 > n2.
+	unsigned int i, n = 0;
+	if(n1->length < n2->length)
+		n = n1->length;
+	else
+		n = n2->length;
+
+	for(i = 0 ; i < n ; i++)
+	{
+		if(n1->tab[i] < n2->tab[i])
+			return -1;
+		else if(n1->tab[i] > n2->tab[i])
+			return 1;
+	}
+	return 0;
+}
+
 unsigned long sortDn(DN* dn, unsigned long begin, unsigned long end)
 {//Sort lexicographically an instance of DN using quicksort and returns the number of recursives calls used.
 	static unsigned long nbCalls = 0;
