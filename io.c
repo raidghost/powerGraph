@@ -2,9 +2,9 @@
 #include <stdlib.h>
 
 #include "limits.h"
+#include "io.h"
 #include "structs.h"
 #include "tools.h"
-#include "io.h"
 
 GRAPH loadGraphFromFile(char *fileName)
 {
@@ -61,6 +61,28 @@ GRAPH loadGraphFromFile(char *fileName)
 	}
 	fclose(file);
 	return g;
+}
+
+int writeGraph2File(GRAPH *g, char* fileName)
+{
+	unsigned long i,j;
+	FILE* file = fopen(fileName, "w+");
+	if(!file)
+	{
+		fprintf(stderr, "We cannot open \"%s\" for writing.\n", fileName);
+		return EXIT_FAILURE;
+	}
+	fprintf(file, "%ld\n", g->nbVertices);
+	for(i = 0 ; i < g->nbVertices ; i++)
+	{
+		for(j = i+1 ; j < g->nbVertices ; j++)
+		{
+			if(g->mat[i][j] == 1)
+				fprintf(file, "%ld-%ld\n", i, j);
+		}
+	}
+	fclose(file);
+	return EXIT_SUCCESS;
 }
 
 void freeGraph(GRAPH* g)

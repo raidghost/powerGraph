@@ -1,6 +1,8 @@
 #ifndef POWERGRAPH
 #define POWERGRAPH
 
-GRAPH_LIST* genPowerGraph(GRAPH* g, unsigned int p, unsigned int supportMax);
+#include "structs.h"
+
+GRAPH_LIST* genPowerGraph(GRAPH* g, unsigned int p, int supportMax);
 
 #endif

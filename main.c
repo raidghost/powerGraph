@@ -3,19 +3,22 @@
 #include <string.h>
 #include <time.h>
 
-#include "io.h"
 #include "display.h"
-#include "structs.h"
 #include "homology.h"
-#include "tools.h"
-#include "rank.h"
-
-#include "powerGraph.h"
+#include "io.h"
 #include "graphList.h"
+#include "powerGraph.h"
+#include "structs.h"
+#include "tools.h"
 
-//GRAPH_LIST* genPowerGraph(GRAPH* g, unsigned int p, unsigned int supportMax);
+
 int main(int argc, char *argv[])
 {
+	bool makeExp = false, save2File = false;
+	int argsOffset = 0, supportMax = -1, verbose = 0, field, n, p;
+	char *file2Save, *tmp;
+	GRAPH g;
+
 	//We initiate the pseudo random generator (used in quicksort)
 	srand(time(NULL));
 	if(argc < 5)
@@ -23,27 +26,60 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Usage : prog GRAPH_FILE n field [-v]\nPossible values for field are : F2, R\n");
 		return EXIT_FAILURE;
 	}
-	//Variable to handle verbosity.
-	int verbose = 0;
+	if(strncmp(argv[1], "--makeExp", 9) == 0)
+	{//In this case, we must generate the powerGraph and work on it instead of the graph itself.
+		makeExp = true;
+		strtok(argv[1], "=");
+		file2Save = strtok(NULL, "=");
+		if(file2Save)
+		//We are in the case --makeExp=file2Save
+			save2File = true;
+		argsOffset++;
+		if(strncmp(argv[2], "--supportMax=", 13) == 0)
+		{//If the support must be bounded
+			strtok(argv[2], "=");
+			tmp = strtok(NULL, "=");
+			if(tmp)
+				supportMax = string2Int(tmp);
+			argsOffset++;
+		}
+		p = string2Int(argv[1 + argsOffset]);
+		argsOffset++;
+		if(p <= 0)
+		{
+			fprintf(stderr, "The value \"p\" must be a positive integer. Beware that in case that \"p\" is not prime, lines in the power graph are not edge-cliques !\n");
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	g = loadGraphFromFile(argv[1 + argsOffset]);
+	if(g.mat == NULL)
+	{//We cannot open the file containning the graph.
+		fprintf(stderr, "Unable to read the graph from \"%s\".\n", argv[1 + argsOffset]);
+		return EXIT_FAILURE;
+	}
+	n = string2Int(argv[2 + argsOffset]);
+
+	if(n <= 1)
+	{
+		fprintf(stderr, "There is no point in testing Hn for n <= 1.\nWe take n=2 by default.\n");
+		n = 2;
+	}
+
+	//Verbosity.
 	if(argc >= 5)
 	{
-		if(strcmp(argv[4], "-v") == 0)
+		if(strcmp(argv[4 + argsOffset], "-v") == 0)
 			verbose = 1;
-		else if(strcmp(argv[4], "-vv") == 0)
+		else if(strcmp(argv[4 + argsOffset], "-vv") == 0)
 			verbose = 2;
-		else if(strcmp(argv[4], "-vvv") == 0)
+		else if(strcmp(argv[4 + argsOffset], "-vvv") == 0)
 			verbose = 3;
 	}
 
-	unsigned int n;
-	int field;
-
-	GRAPH g = loadGraphFromFile(argv[1]);
-	n = (unsigned int)string2Int(argv[2]);
-
-	if(strcmp(argv[3], "F2") == 0)
+	if(strcmp(argv[3 + argsOffset], "F2") == 0)
 		field = 2;
-	else if(strcmp(argv[3], "R") == 0)
+	else if(strcmp(argv[3 + argsOffset], "R") == 0)
 		field = 0;
 	else
 	{
@@ -53,39 +89,27 @@ int main(int argc, char *argv[])
 
 	if(verbose >= 3)
 		displayGraph(&g);
-//	printf("Hn est vraie jusqu'à n = %d\n", testHn(&g, n, field, verbose));
-	GRAPH_LIST *graphL = NULL;
-	graphL = genPowerGraph(&g, 3, 3);
-	displayGraphList(graphL);
-	freeGraph(&g);
-/*	NUPLE u,v,w;
-	v.length = 3;
-	v.tab = (unsigned int*)malloc(3 * sizeof(unsigned int));
-	v.tab[0] = 1;
-	v.tab[1] = 2;
-	v.tab[2] = 3;
-	GRAPH_LIST *g = NULL;
-	g = addVertex(g, v);
-	u.length = 3;
-	u.tab = (unsigned int*)malloc(3 * sizeof(unsigned int));
-	u.tab[0] = 3;
-	u.tab[1] = 1;
-	u.tab[2] = 1;
 
-	w.length = 3;
-	w.tab = (unsigned int*)malloc(3 * sizeof(unsigned int));
-	w.tab[0] = 1;
-	w.tab[1] = 2;
-	w.tab[2] = 4;
-
-	g = addVertex(g,u);
-	g = addVertex(g,w);
-	displayGraphList(g);
-	if(searchVertex(g, w))
-		printf("On a trouvé le sommet à l'adresse %p\n", searchVertex(g, w));
+	if(makeExp)
+	{
+		GRAPH graphExp;
+		GRAPH_LIST* graphExpList;
+		graphExpList = genPowerGraph(&g, p, supportMax);
+		if(verbose >= 3)
+			displayGraphList(graphExpList);
+		graphExp = graphList2Mat(graphExpList);
+		freeGraphList(graphExpList);
+		if(save2File)
+			writeGraph2File(&graphExp, file2Save);
+		//printf("Hn(%d^G) is true until n = %d\n (n_max = %d)", p, testHn(&graphExp, n, field, verbose), n);
+		freeGraph(&graphExp);
+	}
 	else
-		printf("bug");*/
-
-	freeGraphList(graphL);
+	{
+		if(verbose >= 3)
+			displayGraph(&g);
+		printf("Hn(G) est vraie jusqu'à n = %d\n (n_max = %d)", testHn(&g, n, field, verbose), n);
+	}
+	freeGraph(&g);
 	return EXIT_SUCCESS;
 }

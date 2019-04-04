@@ -1,5 +1,7 @@
+/*This program aims at testing the main program.*/
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "check.h"
 #include "io.h"
@@ -10,7 +12,7 @@ int main(int argc, char *argv[])
 {
 	if(argc < 3)
 	{
-		fprintf(stderr, "Usage : prog GRAPH_FILE nbVertices\n");
+		fprintf(stderr, "Usage : prog GRAPH_FILE nbVertices [nbEdges] [commonDegree]\n");
 		return EXIT_FAILURE;
 	}
 	GRAPH g = loadGraphFromFile(argv[1]);

@@ -6,10 +6,6 @@
 #include "io.h"
 #include "tools.h"
 
-//Variables globales indispensables pour le quicksort.
-unsigned int n1Length = 0;
-unsigned int n2Length = 0;
-
 int string2Int(const char *string)
 {//Convert a string to an integer in basis 10.
 	int result = 0, sign = 1;
@@ -112,24 +108,19 @@ int nupleCmp(NUPLE *n1, NUPLE *n2)
 	return 0;
 }
 
-unsigned long sortDn(DN* dn, unsigned long begin, unsigned long end)
+void sortDn(DN* dn, unsigned long begin, unsigned long end)
 {//Sort lexicographically an instance of DN using quicksort and returns the number of recursives calls used.
-	static unsigned long nbCalls = 0;
-	nbCalls++;
 	unsigned int* tmp;
 	if(end - begin <= 0)
-		return nbCalls;
+		return;
 	else if(end - begin == 1)
 	{
-/*		printf("%ld\n", dn->tuples[end]);
-		printf("%ld\n", dn->tuples[begin]);*/
 		if(nuplecmp(dn->tuples[end],dn->tuples[begin],dn->n) < 0)
 		{
 			tmp = dn->tuples[begin];
 			dn->tuples[begin] = dn->tuples[end];
 			dn->tuples[end] = tmp;
 		}
-		return nbCalls;
 	}
 	else
 	{
@@ -162,7 +153,6 @@ unsigned long sortDn(DN* dn, unsigned long begin, unsigned long end)
 		if(end >= begin + pivot + 2)
 			sortDn(dn, begin + pivot + 1, end);
 	}
-	return nbCalls;
 }
 
 unsigned long dichoSearchDN(const DN *dn, unsigned int *x, unsigned long begin, unsigned long end)

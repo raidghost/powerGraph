@@ -3,12 +3,12 @@
 #include <math.h>
 #include <gmp.h>
 
-#include "structs.h"
-#include "limits.h"
-#include "io.h"
-#include "tools.h"
 #include "display.h"
 #include "homology.h"
+#include "io.h"
+#include "limits.h"
+#include "structs.h"
+#include "tools.h"
 #include "rank.h"
 
 unsigned int testHn(const GRAPH* g, const unsigned int nMax, const int field, const int verbose)
@@ -48,9 +48,9 @@ unsigned int testHn(const GRAPH* g, const unsigned int nMax, const int field, co
 
 		if(verbose >= 3)
 		{
-			printf("\nD%d := \n\n", n);
+			printf("\nD%d := \n", n);
 			displayDn(&dnMoins1);
-			printf("\nD%d := \n\n", n+1);
+			printf("\nD%d := \n", n+1);
 			displayDn(&dn);
 		}
 
