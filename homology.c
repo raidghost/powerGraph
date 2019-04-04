@@ -254,9 +254,9 @@ DN generateDn(const GRAPH* g, unsigned int n)
 		}
 		if(nbNeighbours > n)
 		{//If vertex i has strictly more than n neighbours then we have to find all the subsequences of length n of tupleTmp and add it (if not exists) in dnTmp.
+			unsigned long** bin = binomAll(nbNeighbours);
 			subSeqTupleTmp = subSequencesFixedLength(tupleTmp, nbNeighbours, n);
 			//We now add, if needed, the new n-uples to dnTmp
-			unsigned long** bin = binomAll(nbNeighbours);
 			for(j = 0 ; j < bin[nbNeighbours][n] ; j++)
 			{
 				isSequenceNew = true;
@@ -275,8 +275,15 @@ DN generateDn(const GRAPH* g, unsigned int n)
 				}
 				if(isSequenceNew)
 				{
+					if(nbTuples * n + n-1 >= ARRAY_MAX_LENGTH)
+					{
+						fprintf(stderr, "You need to raise the ARRAY_MAX_LENGTH in limits.h and recompile the program.\n");
+						exit(EXIT_FAILURE);
+					}
 					for(k = 0 ; k < n ; k++)
-						dnTmp[nbTuples * n + k] = subSeqTupleTmp[j][k];
+					{
+											dnTmp[nbTuples * n + k] = subSeqTupleTmp[j][k];
+					}
 					nbTuples++;
 				}
 			}
@@ -441,8 +448,7 @@ unsigned int** subSequencesFixedLength(unsigned int list[], unsigned long length
 	unsigned long** bin = binomAll(length);
 
 	subseqs = (unsigned int***)malloc(subSeqLength* sizeof(unsigned int**));
-
-	if(subseqs == NULL)
+	if(!subseqs)
 		NO_MEM_LEFT()
 	
 	//We can now create the subseqs array of array with good size using binomials.
@@ -450,14 +456,14 @@ unsigned int** subSequencesFixedLength(unsigned int list[], unsigned long length
 	{
 		//We know exactly the number of subsequences of size i+1.
 		subseqs[i] = (unsigned int**)malloc(bin[length][i+1] * sizeof(unsigned int*));
-		if(subseqs[i] == NULL)
+		if(!subseqs[i])
 			NO_MEM_LEFT()
 		if(i == 0)
 		{
 			for(j = 0 ; j < length ; j++)
 			{
 				subseqs[0][j] = (unsigned int*)malloc(sizeof(unsigned int));
-				if(subseqs[0][j] == NULL)
+				if(!subseqs[0][j])
 					NO_MEM_LEFT()
 				subseqs[0][j][0] = list[j];
 			}
@@ -467,7 +473,7 @@ unsigned int** subSequencesFixedLength(unsigned int list[], unsigned long length
 			for(j = 0 ; j < bin[length][i+1] ; j++)
 			{
 				subseqs[i][j] = (unsigned int*)malloc((i+1) * sizeof(unsigned int));
-				if(subseqs[i][j] == NULL)
+				if(!subseqs[i][j])
 					NO_MEM_LEFT()
 			}
 			//We look at every subsequences of size i.
@@ -485,7 +491,7 @@ unsigned int** subSequencesFixedLength(unsigned int list[], unsigned long length
 					if(l == i)
 					{//list[k] is not in subseqs[i-1][j]
 						newSubSeq = (unsigned int*)realloc(newSubSeq, (i+1) * sizeof(unsigned int));
-						if(newSubSeq == NULL)
+						if(!newSubSeq)
 							NO_MEM_LEFT()
 						//Now we insert list[k] at the appropriate position in subseqs[i-1][j]
 						l = 0;

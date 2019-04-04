@@ -43,15 +43,13 @@ unsigned long binom(unsigned int n, unsigned int k)
 unsigned long** binomAll(unsigned int n)
 {//Computes Pascal's triangle given n.
 	unsigned int i,j;
-	unsigned long** binom = NULL;
-
-	binom = (unsigned long**)malloc((n+1) * sizeof(unsigned long*));
-	if(binom == NULL)
+	unsigned long** binom = (unsigned long**)malloc((n+1) * sizeof(unsigned long*));
+	if(!binom)
 		NO_MEM_LEFT()
 	for(i = 0 ; i <= n ; i++)
 	{
 		binom[i] = (unsigned long*)malloc((i+1) * sizeof(unsigned long));
-		if(binom[i] == NULL)
+		if(!binom[i])
 			NO_MEM_LEFT()
 	}
 	binom[0][0] = 1;

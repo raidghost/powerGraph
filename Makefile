@@ -1,5 +1,6 @@
 OPT=-O3
 #OPT=-g -O0 -fno-inline
+#OPT=-g
 all: main check
 
 main: main.o io.o display.o homology.o tools.o rank.o powerGraph.o graphList.o

@@ -15,7 +15,7 @@
 int main(int argc, char *argv[])
 {
 	bool makeExp = false, save2File = false;
-	int argsOffset = 0, supportMax = -1, verbose = 0, field, n, p;
+	int argsOffset = 0, supportMax = -1, verbose = 0, field = 2, n = 7, p = 3;
 	char *file2Save, *tmp;
 	GRAPH g;
 
@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
 	srand(time(NULL));
 	if(argc < 5)
 	{
-		fprintf(stderr, "Usage : prog GRAPH_FILE n field [-v]\nPossible values for field are : F2, R\n");
+		fprintf(stderr, "Usage : prog [--makeExp[=outputFile] [--supportMax=k] p] GRAPH_FILE n field [-v]\nPossible values for field are : F2, R\n");
 		return EXIT_FAILURE;
 	}
 	if(strncmp(argv[1], "--makeExp", 9) == 0)
@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
 		freeGraphList(graphExpList);
 		if(save2File)
 			writeGraph2File(&graphExp, file2Save);
-		//printf("Hn(%d^G) is true until n = %d\n (n_max = %d)", p, testHn(&graphExp, n, field, verbose), n);
+		printf("Hn(%d^G) is true until n = %d\n (n_max = %d)", p, testHn(&graphExp, n, field, verbose), n);
 		freeGraph(&graphExp);
 	}
 	else
