@@ -7,6 +7,8 @@
 #include "structs.h"
 #include "tools.h"
 
+#include "display.h"
+
 
 GRAPH_LIST* genPowerGraph(GRAPH* g, unsigned int p, int supportMax)
 {
@@ -133,4 +135,121 @@ GRAPH_LIST* genPowerGraph(GRAPH* g, unsigned int p, int supportMax)
 	}
 	free(vertices);
 	return powerGraph;
+}
+
+EK_CERT ekCert(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p, int field)
+{
+	/*An edge clique is a list of list of nuple. Each nuple represent a vertex.
+	Each list of nuples must be of size p.*/
+	if(p < 1)
+	{
+		fprintf(stderr, "We cannot look for edge cliques in 0^G !\n");
+		exit(EXIT_FAILURE);
+	}
+	int* positionNuple;
+	unsigned int nbVerticesPG = getNbVertices(powerGraph), currentEK = 0;
+	unsigned long i,j,k,l;
+	NUPLE u;
+	NUPLE* listVerticesPGOrdered;
+	bool isEkCompletelyNew;//If an ek contain at least one vertex already in an other ek this boolean must be set to false.
+	bool* listVerticesPGOrderedBool;
+	GRAPH_LIST* tmp;
+	EK_CERT ekCert;
+
+	//We know exactly how many edge clique there is in the graph.
+	ekCert.nbEk = nbVerticesPG / p;
+	ekCert.nbEltPerEk = p;
+	ekCert.ek = (NUPLE**)malloc(ekCert.nbEk * sizeof(NUPLE*));
+	ekCert.weight = (long double*)malloc(ekCert.nbEk * sizeof(long double));
+	if(!ekCert.ek || !ekCert.weight)
+		NO_MEM_LEFT()
+	for(i = 0 ; i < ekCert.nbEk ; i++)
+	{
+		ekCert.ek[i] = (NUPLE*)malloc(ekCert.nbEltPerEk * sizeof(NUPLE));
+		if(!ekCert.ek[i])
+			NO_MEM_LEFT()
+		for(j = 0 ; j < p ; j++)
+		{
+			ekCert.ek[i][j].length = p;
+			ekCert.ek[i][j].tab = (unsigned int*)malloc(p * sizeof(unsigned int));
+			if(!ekCert.ek[i][j].tab)
+				NO_MEM_LEFT()
+		}
+	}
+
+	//We retreive all the vertices in an array (fast access). We assume g to be ordered.
+	listVerticesPGOrdered = (NUPLE*)malloc(nbVerticesPG * sizeof(NUPLE));
+	listVerticesPGOrderedBool = (bool*)malloc(nbVerticesPG * sizeof(bool));
+	positionNuple = (int*)malloc(p * sizeof(int));
+	u.tab = (unsigned int*)malloc(u.length * sizeof(unsigned int));
+	if(!listVerticesPGOrdered || !listVerticesPGOrderedBool || !positionNuple || !u.tab)
+		NO_MEM_LEFT()
+	tmp = powerGraph;
+	for(i = 0 ; i < nbVerticesPG ; i++)
+	{
+		listVerticesPGOrdered[i] = tmp->v;
+		//This means that at the begening we have never encountered vertex number i.
+		listVerticesPGOrderedBool[i] = false;
+		tmp = tmp->next;
+	}
+
+//	displayGraphList(powerGraph);
+//----------------- This part could be improved.
+	u.length = g->nbVertices;
+	for(l = 0 ; l < nbVerticesPG ; l++)
+	{
+		if(!listVerticesPGOrderedBool[l])
+		{//If this is the first time we see this vertex.
+			for(i = 0 ; i < g->nbVertices ; i++)
+			{
+				for(j = i+1 ; j < g->nbVertices ; j++)
+				{
+					if(g->mat[i][j] == 1)
+					{
+						//We generate the edge clique directed by the edge i,j and containing u.
+						nupleCpy(&listVerticesPGOrdered[l], &u);
+						displayNuple(&u);
+						nupleCpy(&u, ekCert.ek[currentEK]);
+						ekCert.weight[currentEK] = 0;
+						positionNuple[0] = l;
+						listVerticesPGOrderedBool[l] = true;
+						isEkCompletelyNew = true;
+						for(k = 1 ; k < p ; k++)
+						{
+							u.tab[i] = (u.tab[i] + 1) % p;
+							u.tab[j] = (u.tab[j] + p-1) % p;
+							positionNuple[k] = dichoSearchNupleList(listVerticesPGOrdered, &u, 0, nbVerticesPG - 1);
+							//-------------Tester si positionNuple[k] >=0
+							if(listVerticesPGOrderedBool[positionNuple[k]])
+							{
+								isEkCompletelyNew = false;
+								break;
+							}
+							else
+							{
+								listVerticesPGOrderedBool[positionNuple[k]] = true;
+								nupleCpy(&u, ekCert.ek[currentEK] + k);
+							}
+						}
+						if(isEkCompletelyNew)
+							currentEK++;
+						else
+						{//If the ek is not compeletely new then we discard all the vertices we have seen during this round.
+							for(k = 0 ; k < p ; k++)
+								listVerticesPGOrderedBool[positionNuple[k]] = false;
+						}
+						//In any case, we must break the two for loop because we want a completely new ek.
+						i = g->nbVertices;
+						j = g->nbVertices;
+					}
+				}
+			}
+		}
+	}
+
+	free(listVerticesPGOrdered);
+	free(listVerticesPGOrderedBool);
+	free(positionNuple);
+	free(u.tab);
+	return ekCert;
 }

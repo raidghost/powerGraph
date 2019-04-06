@@ -279,8 +279,6 @@ DN generateDn(const GRAPH* g, unsigned int n)
 				{
 					if(nbTuples * n + n-1 >= nbReallocDnTmp * ARRAY_MAX_LENGTH)
 					{//We need to realloc dnTmp.
-						fprintf(stderr, "You need to raise the ARRAY_MAX_LENGTH define (currently set to %d) in limits.h and recompile the program.\n", ARRAY_MAX_LENGTH);
-//						exit(EXIT_FAILURE);
 						nbReallocDnTmp++;
 						dnTmp = (unsigned int*)realloc(dnTmp, nbReallocDnTmp * ARRAY_MAX_LENGTH * sizeof(unsigned int));
 						if(!dnTmp)

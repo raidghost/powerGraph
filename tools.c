@@ -88,7 +88,7 @@ int nuplecmp(unsigned int *nuple1, unsigned int *nuple2, unsigned int n)
 	return 0;
 }
 
-int nupleCmp(NUPLE *n1, NUPLE *n2)
+int nupleCmp(const NUPLE *n1, const NUPLE *n2)
 {//Returns 0 if n1 == n2, -1 if n1 < n2 and +1 if n1 > n2.
 	unsigned int i, n = 0;
 	if(n1->length < n2->length)
@@ -104,6 +104,14 @@ int nupleCmp(NUPLE *n1, NUPLE *n2)
 			return 1;
 	}
 	return 0;
+}
+
+void nupleCpy(const NUPLE *n1, NUPLE *n2)
+{
+	unsigned int i;
+	n2->length = n1->length;
+	for(i = 0 ; i < n2->length ; i++)
+		n2->tab[i] = n1->tab[i];
 }
 
 void sortDn(DN* dn, unsigned long begin, unsigned long end)
@@ -171,10 +179,30 @@ unsigned long dichoSearchDN(const DN *dn, unsigned int *x, unsigned long begin, 
 			return dichoSearchDN(dn, x, midle + 1, end);
 			break;
 
-			//case 0:
 			default:
 			return midle;
 		}
+	}
+}
+
+long dichoSearchNupleList(const NUPLE *list, const NUPLE *n, unsigned long begin, unsigned long end)
+{//Given a sorted list of nuples, we search for an element. If not found return -1.
+	if(begin > end)
+		return -1;
+	unsigned long midle = (end + begin) / 2;
+	int cmp = nupleCmp(n, list + midle);
+	switch(cmp)
+	{
+		case -1:
+		return dichoSearchNupleList(list, n, begin, midle - 1);
+		break;
+
+		case 1:
+		return dichoSearchNupleList(list, n, midle + 1, end);
+		break;
+
+		default:
+		return midle;
 	}
 }
 

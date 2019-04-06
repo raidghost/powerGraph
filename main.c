@@ -98,10 +98,11 @@ int main(int argc, char *argv[])
 		if(verbose >= 3)
 			displayGraphList(graphExpList);
 		graphExp = graphList2Mat(graphExpList);
+		ekCert(&g, graphExpList, p, field);
 		freeGraphList(graphExpList);
-		if(save2File)
-			writeGraph2File(&graphExp, file2Save);
-		printf("Hn(%d^G) is true until n = %d\n (n_max = %d)", p, testHn(&graphExp, n, field, verbose), n);
+		//if(save2File)
+		//	writeGraph2File(&graphExp, file2Save);
+		//printf("Hn(%d^G) is true until n = %d\n (n_max = %d)", p, testHn(&graphExp, n, field, verbose), n);
 		freeGraph(&graphExp);
 	}
 	else

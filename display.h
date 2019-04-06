@@ -9,5 +9,6 @@ void displayMatrixF2(const MATRIX_F2* m);
 void displayMatrixR(const MATRIX_R* m);
 void displayNuple(NUPLE *n);
 void displayGraphList(GRAPH_LIST *g);
+void displayEkCert(EK_CERT* ekCert);
 
 #endif

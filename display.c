@@ -65,7 +65,7 @@ void displayNuple(NUPLE *n)
 		if(i < n->length - 1)
 			printf("%d-", n->tab[i]);
 	}
-	printf("%d\n", n->tab[i]);
+	printf("%d", n->tab[i]);
 }
 
 void displayGraphList(GRAPH_LIST *g)
@@ -93,5 +93,19 @@ void displayGraphList(GRAPH_LIST *g)
 			}
 		}
 		tmp = tmp->next;
+	}
+}
+
+void displayEkCert(EK_CERT* ekCert)
+{
+	unsigned int i,j;
+	for(i = 0 ; i < ekCert->nbEk ; i++)
+	{
+		for(j = 0 ; j < ekCert->nbEltPerEk ; j++)
+		{
+			displayNuple(ekCert->ek[i] + j);
+			printf("---");
+		}
+		printf("\n");
 	}
 }
