@@ -100,7 +100,13 @@ int main(int argc, char *argv[])
 			displayGraphList(graphExpList);
 		graphExp = graphList2Mat(graphExpList);
 		ekCertificate = findEkCert(&g, graphExpList, p, field);
-		displayEkCert(&ekCertificate);
+		if(ekCertificate.weight)
+		{//If we have found an edge clique certificate.
+			printf("We found an edge clique certificate !\n");
+			displayEkCert(&ekCertificate, false);
+		}
+		else
+			printf("We could not find any certificate...\n");
 		freeEkCert(&ekCertificate);
 		freeGraphList(graphExpList);
 		if(save2File)

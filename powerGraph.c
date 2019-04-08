@@ -282,13 +282,130 @@ EK_CERT findEkCert(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p, int field)
 			for(k = 0 ; k < ekCert.nbEltPerEk ; k++)
 				ekVSVertices.mat[i][dichoSearchNupleList(listVerticesPGOrdered, &ekCert.ek[i][k], 0, nbVerticesPG - 1)] = 1;
 		}
-		displayMatrixF2(&ekVSVertices);
-		printf("Le rang vaut %ld.\n", rankF2(&ekVSVertices));
+
+//--------- Start Gauss
+		MATRIX_F2 q;
+		unsigned long max, rank = 0, firstNonZeroEntry = 0;
+		char *tmp = NULL;
+
+		q.nbRows = ekCert.nbEk;
+		q.nbColumns = ekCert.nbEk;
+
+		q.mat = (char**)malloc(q.nbRows * sizeof(char*));
+		if(!q.mat)
+			NO_MEM_LEFT()
+		for(i = 0 ; i < q.nbRows ; i++)
+		{
+			q.mat[i] = (char*)calloc(q.nbColumns, q.nbColumns * sizeof(char));
+			if(!q.mat[i])
+				NO_MEM_LEFT()
+			q.mat[i][i] = 1;
+		}
+
+		//We start Gauss pivoting
+		for(i = 0 ; i < ekVSVertices.nbRows ; i++)
+		{
+			//We look for the row corresponding to the maximum binary integer.
+			max = i;
+			for(j = max + 1 ; j < ekVSVertices.nbRows ; j++)
+			{
+				for(k = 0 ; k < ekVSVertices.nbColumns ; k++)
+				{
+					if(ekVSVertices.mat[j][k] < ekVSVertices.mat[max][k])
+						break;
+					else if(ekVSVertices.mat[j][k] > ekVSVertices.mat[max][k])
+					{
+						max = j;
+						break;
+					}
+				}
+			}
+			//We test wether the maximum line is zero and retreive the first non zero entry.
+			for(j = 0 ; j < ekVSVertices.nbColumns ; j++)
+			{
+				if(ekVSVertices.mat[max][j] != 0)
+				{
+					firstNonZeroEntry = j;
+					break;
+				}
+			}
+			if(j == ekVSVertices.nbColumns)
+			//If the maximum line is zero then we have the rank.
+				break;
+			else if(max > i)
+			{//We put the max in position i.
+				tmp = ekVSVertices.mat[i];
+				ekVSVertices.mat[i] = ekVSVertices.mat[max];
+				ekVSVertices.mat[max] = tmp;
+
+				//We perform the same operation on matrix q.
+				tmp = q.mat[i];
+				q.mat[i] = q.mat[max];
+				q.mat[max] = tmp;
+			}
+			rank++;
+			if(rank == ekVSVertices.nbRows || rank == ekVSVertices.nbColumns)
+				break;
+			//We xor every line under and above line i that needs to be xored.
+			for(j = i + 1 ; j < ekVSVertices.nbRows ; j++)
+			{
+				if(ekVSVertices.mat[j][firstNonZeroEntry] != 0)
+				{//We have found a non zero coef so we must xor line j !
+					for(k = 0 ; k < ekVSVertices.nbColumns ; k++)
+						ekVSVertices.mat[j][k] = (ekVSVertices.mat[j][k] + ekVSVertices.mat[i][k]) % 2;
+					//We perform the same operation for matrix q.
+					for(k = 0 ; k < q.nbColumns ; k++)
+						q.mat[j][k] = (q.mat[j][k] + q.mat[i][k]) % 2;
+				}
+			}
+		}
+//--------- End Gauss
+
+		unsigned int nb1OnThisRow, nb1OnQRow, nb1OnQRowOld = q.nbColumns + 1, bestRow = q.nbRows + 1;
+		for(i = 0 ; i < ekVSVertices.nbRows ; i++)
+		{
+			nb1OnThisRow = 0;
+			nb1OnQRow = 0;
+			for(j = 0 ; j < ekVSVertices.nbColumns ; j++)
+			{
+				if(ekVSVertices.mat[i][j] == 1)
+					nb1OnThisRow++;
+			}
+			if(nb1OnThisRow == 1)
+			{
+				//We count the number of 1 in the corresponding q row (We want to minimize it !).
+				for(j = 0 ; j < q.nbColumns ; j++)
+				{
+					if(q.mat[i][j] == 1)
+						nb1OnQRow++;
+					if(nb1OnQRow > nb1OnQRowOld)
+						break;
+				}
+				if(nb1OnQRowOld > nb1OnQRow)
+				{
+					nb1OnQRowOld = nb1OnQRow;
+					bestRow = i;
+				}
+			}
+		}
+		if(bestRow <= q.nbRows)
+		{//If we found some row with exactly one 1 in the matrix in row echelon form.
+			ekCert.weight = (long double*)calloc(ekCert.nbEk, ekCert.nbEk * sizeof(long double));
+			if(!ekCert.weight)
+				NO_MEM_LEFT()
+			for(j = 0 ; j < q.nbColumns ; j++)
+				ekCert.weight[j] = q.mat[bestRow][j];
+		}
+		else
+			ekCert.weight = NULL;
 
 		//We free useless memory.
 		for(i = 0 ; i < ekCert.nbEk ; i++)
 			free(ekVSVertices.mat[i]);
 		free(ekVSVertices.mat);
+		for(i = 0 ; i < q.nbRows ; i++)
+			free(q.mat[i]);
+		free(q.mat);
 	}
 
 	free(listVerticesPGOrdered);
@@ -305,4 +422,6 @@ void freeEkCert(EK_CERT *ekCert)
 		free(ekCert->ek[i]);
 	}
 	free(ekCert->ek);
+	if(ekCert->weight)
+		free(ekCert->weight);
 }

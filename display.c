@@ -96,17 +96,22 @@ void displayGraphList(GRAPH_LIST* g)
 	}
 }
 
-void displayEkCert(EK_CERT* ekCert)
+void displayEkCert(EK_CERT* ekCert, bool displayZeroWeight)
 {
 	unsigned int i,j;
 	for(i = 0 ; i < ekCert->nbEk ; i++)
 	{
 		for(j = 0 ; j < ekCert->nbEltPerEk ; j++)
 		{
-			displayNuple(ekCert->ek[i] + j);
-			if(j < ekCert->nbEltPerEk - 1)
-				printf("---");
+			if(displayZeroWeight || ekCert->weight[i])
+			{
+				displayNuple(ekCert->ek[i] + j);
+				if(j < ekCert->nbEltPerEk - 1)
+					printf("---");
+			}
 		}
-		printf("\n");
+		if(displayZeroWeight || ekCert->weight[i])
+			printf("\tpoids = %Lf\n", ekCert->weight[i]);
 	}
+	printf("There are %d edge cliques.\n", ekCert->nbEk);
 }
