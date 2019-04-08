@@ -16,7 +16,7 @@ tools.o: tools.c tools.h
 	gcc $(OPT) -c tools.c -Wall -Wextra -std=gnu89 -o tools.o
 rank.o: rank.c structs.h
 	gcc $(OPT) -c rank.c -Wall -Wextra -std=gnu89 -lgmp -o rank.o
-powerGraph.o: powerGraph.c io.h graphList.h structs.h tools.h
+powerGraph.o: powerGraph.c io.h graphList.h structs.h tools.h rank.h
 	gcc $(OPT) -c powerGraph.c -Wall -Wextra -std=gnu89 -o powerGraph.o
 graphList.o: graphList.c io.h structs.h tools.h
 	gcc $(OPT) -c graphList.c -Wall -Wextra -std=gnu89 -o graphList.o

@@ -94,11 +94,13 @@ int main(int argc, char *argv[])
 	{
 		GRAPH graphExp;
 		GRAPH_LIST* graphExpList;
+		EK_CERT ekCertificate;
 		graphExpList = genPowerGraph(&g, p, supportMax);
 		if(verbose >= 3)
 			displayGraphList(graphExpList);
 		graphExp = graphList2Mat(graphExpList);
-		ekCert(&g, graphExpList, p, field);
+		ekCertificate = ekCert(&g, graphExpList, p, field);
+		displayEkCert(&ekCertificate);
 		freeGraphList(graphExpList);
 		//if(save2File)
 		//	writeGraph2File(&graphExp, file2Save);

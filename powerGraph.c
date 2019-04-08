@@ -6,6 +6,7 @@
 #include "graphList.h"
 #include "structs.h"
 #include "tools.h"
+#include "rank.h"
 
 #include "display.h"
 
@@ -148,11 +149,11 @@ EK_CERT ekCert(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p, int field)
 	}
 	int* positionNuple;
 	unsigned int nbVerticesPG = getNbVertices(powerGraph), currentEK = 0;
-	unsigned long i,j,k,l;
+	unsigned long i,j,k,l,m;
 	NUPLE u;
-	NUPLE* listVerticesPGOrdered;
-	bool isEkCompletelyNew;//If an ek contain at least one vertex already in an other ek this boolean must be set to false.
-	bool* listVerticesPGOrderedBool;
+	NUPLE *listVerticesPGOrdered, *newEk;
+	bool isEkCompletelyNew;//If an ek contains at least one vertex already in an other ek this boolean must be set to false.
+	bool* listVerticesPGOrderedBool;//Contains true iff we have already pu vertex number k in an ek.
 	GRAPH_LIST* tmp;
 	EK_CERT ekCert;
 
@@ -168,10 +169,10 @@ EK_CERT ekCert(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p, int field)
 		ekCert.ek[i] = (NUPLE*)malloc(ekCert.nbEltPerEk * sizeof(NUPLE));
 		if(!ekCert.ek[i])
 			NO_MEM_LEFT()
-		for(j = 0 ; j < p ; j++)
+		for(j = 0 ; j < ekCert.nbEltPerEk ; j++)
 		{
-			ekCert.ek[i][j].length = p;
-			ekCert.ek[i][j].tab = (unsigned int*)malloc(p * sizeof(unsigned int));
+			ekCert.ek[i][j].length = ekCert.nbEltPerEk;
+			ekCert.ek[i][j].tab = (unsigned int*)malloc(ekCert.nbEltPerEk * sizeof(unsigned int));
 			if(!ekCert.ek[i][j].tab)
 				NO_MEM_LEFT()
 		}
@@ -179,10 +180,12 @@ EK_CERT ekCert(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p, int field)
 
 	//We retreive all the vertices in an array (fast access). We assume g to be ordered.
 	listVerticesPGOrdered = (NUPLE*)malloc(nbVerticesPG * sizeof(NUPLE));
+	newEk = (NUPLE*)malloc(p * sizeof(NUPLE));
 	listVerticesPGOrderedBool = (bool*)malloc(nbVerticesPG * sizeof(bool));
-	positionNuple = (int*)malloc(p * sizeof(int));
+	positionNuple = (int*)malloc(ekCert.nbEltPerEk * sizeof(int));
+	u.length = g->nbVertices;
 	u.tab = (unsigned int*)malloc(u.length * sizeof(unsigned int));
-	if(!listVerticesPGOrdered || !listVerticesPGOrderedBool || !positionNuple || !u.tab)
+	if(!listVerticesPGOrdered || !newEk || !listVerticesPGOrderedBool || !positionNuple || !u.tab)
 		NO_MEM_LEFT()
 	tmp = powerGraph;
 	for(i = 0 ; i < nbVerticesPG ; i++)
@@ -193,63 +196,100 @@ EK_CERT ekCert(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p, int field)
 		tmp = tmp->next;
 	}
 
-//	displayGraphList(powerGraph);
-//----------------- This part could be improved.
-	u.length = g->nbVertices;
+	//----------------- This part could be improved.
 	for(l = 0 ; l < nbVerticesPG ; l++)
 	{
 		if(!listVerticesPGOrderedBool[l])
 		{//If this is the first time we see this vertex.
+			positionNuple[0] = l;
+			nupleCpy(listVerticesPGOrdered + l, &u);
+			nupleCpy(&u, newEk);
 			for(i = 0 ; i < g->nbVertices ; i++)
 			{
 				for(j = i+1 ; j < g->nbVertices ; j++)
 				{
 					if(g->mat[i][j] == 1)
-					{
-						//We generate the edge clique directed by the edge i,j and containing u.
-						nupleCpy(&listVerticesPGOrdered[l], &u);
-						displayNuple(&u);
-						nupleCpy(&u, ekCert.ek[currentEK]);
-						ekCert.weight[currentEK] = 0;
-						positionNuple[0] = l;
-						listVerticesPGOrderedBool[l] = true;
+					{//We generate the edge clique directed by the edge i,j and containing u.
 						isEkCompletelyNew = true;
 						for(k = 1 ; k < p ; k++)
-						{
+						{//We generate the other elements of the current ek.
 							u.tab[i] = (u.tab[i] + 1) % p;
 							u.tab[j] = (u.tab[j] + p-1) % p;
 							positionNuple[k] = dichoSearchNupleList(listVerticesPGOrdered, &u, 0, nbVerticesPG - 1);
-							//-------------Tester si positionNuple[k] >=0
-							if(listVerticesPGOrderedBool[positionNuple[k]])
-							{
+							if(positionNuple[k] == -1 || listVerticesPGOrderedBool[positionNuple[k]])
+							{//This means either we did not generate the whole powerGraph, either we have already an ek containning the current vertex.
 								isEkCompletelyNew = false;
 								break;
 							}
-							else
-							{
-								listVerticesPGOrderedBool[positionNuple[k]] = true;
-								nupleCpy(&u, ekCert.ek[currentEK] + k);
-							}
 						}
 						if(isEkCompletelyNew)
+						{
+							for(k = 0 ; k < p ; k++)
+							{
+								nupleCpy(newEk + k, ekCert.ek[currentEK] + k);
+								listVerticesPGOrderedBool[positionNuple[k]] = true;
+							}
 							currentEK++;
+							i = g->nbVertices;
+							j = g->nbVertices;
+						}
 						else
 						{//If the ek is not compeletely new then we discard all the vertices we have seen during this round.
-							for(k = 0 ; k < p ; k++)
-								listVerticesPGOrderedBool[positionNuple[k]] = false;
+							for(m = 0 ; m <= k ; m++)
+							{
+								if(positionNuple[k] != -1)
+									listVerticesPGOrderedBool[positionNuple[k]] = false;
+							}
 						}
-						//In any case, we must break the two for loop because we want a completely new ek.
-						i = g->nbVertices;
-						j = g->nbVertices;
+						printf("\n");
+						for(k = 0 ; k < nbVerticesPG ; k++)
+						{
+							if(listVerticesPGOrderedBool[k])
+								printf("1-");
+							else
+								printf("0-");
+						}
 					}
 				}
 			}
 		}
 	}
 
-	free(listVerticesPGOrdered);
+	displayGraphList(powerGraph);
+	printf("\n\n");
+	displayEkCert(&ekCert);
+	//We free useless memory.
+	free(newEk);
 	free(listVerticesPGOrderedBool);
 	free(positionNuple);
 	free(u.tab);
+
+	if(field == 2)
+	{//If the field is F2
+		MATRIX_F2 ekVSVertices;
+		ekVSVertices.nbRows = ekCert.nbEk;
+		ekVSVertices.nbColumns = nbVerticesPG;
+
+		ekVSVertices.mat = (char**)malloc(ekVSVertices.nbRows * sizeof(char*));
+		if(!ekVSVertices.mat)
+			NO_MEM_LEFT()
+		for(i = 0 ; i < ekCert.nbEk ; i++)
+		{
+			ekVSVertices.mat[i] = (char*)calloc(ekVSVertices.nbColumns, ekVSVertices.nbColumns * sizeof(char));
+			if(!ekVSVertices.mat[i])
+				NO_MEM_LEFT()
+			for(k = 0 ; k < ekCert.nbEltPerEk ; k++)
+				ekVSVertices.mat[i][dichoSearchNupleList(listVerticesPGOrdered, &ekCert.ek[i][k], 0, nbVerticesPG - 1)] = 1;
+		}
+		displayMatrixF2(&ekVSVertices);
+		printf("Le rang vaut %ld.\n", rankF2(&ekVSVertices));
+
+		//We free useless memory.
+		for(i = 0 ; i < ekCert.nbEk ; i++)
+			free(ekVSVertices.mat[i]);
+		free(ekVSVertices.mat);
+	}
+
+	free(listVerticesPGOrdered);
 	return ekCert;
 }
