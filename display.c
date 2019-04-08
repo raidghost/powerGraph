@@ -57,7 +57,7 @@ void displayMatrixR(const MATRIX_R* m)
 	}
 }
 
-void displayNuple(NUPLE *n)
+void displayNuple(NUPLE* n)
 {
 	unsigned int i;
 	for(i = 0 ; i < n->length - 1 ; i++)
@@ -68,7 +68,7 @@ void displayNuple(NUPLE *n)
 	printf("%d", n->tab[i]);
 }
 
-void displayGraphList(GRAPH_LIST *g)
+void displayGraphList(GRAPH_LIST* g)
 {
 	GRAPH_LIST *tmp = g;
 	unsigned int i,j;
@@ -104,7 +104,8 @@ void displayEkCert(EK_CERT* ekCert)
 		for(j = 0 ; j < ekCert->nbEltPerEk ; j++)
 		{
 			displayNuple(ekCert->ek[i] + j);
-			printf("---");
+			if(j < ekCert->nbEltPerEk - 1)
+				printf("---");
 		}
 		printf("\n");
 	}

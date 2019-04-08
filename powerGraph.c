@@ -138,7 +138,7 @@ GRAPH_LIST* genPowerGraph(GRAPH* g, unsigned int p, int supportMax)
 	return powerGraph;
 }
 
-EK_CERT ekCert(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p, int field)
+EK_CERT findEkCert(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p, int field)
 {
 	/*An edge clique is a list of list of nuple. Each nuple represent a vertex.
 	Each list of nuples must be of size p.*/
@@ -147,46 +147,38 @@ EK_CERT ekCert(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p, int field)
 		fprintf(stderr, "We cannot look for edge cliques in 0^G !\n");
 		exit(EXIT_FAILURE);
 	}
+	int nbEdgesG;
 	int* positionNuple;
-	unsigned int nbVerticesPG = getNbVertices(powerGraph), currentEK = 0;
+	unsigned int nbVerticesPG = getNbVertices(powerGraph);
 	unsigned long i,j,k,l,m;
-	NUPLE u;
 	NUPLE *listVerticesPGOrdered, *newEk;
-	bool isEkCompletelyNew;//If an ek contains at least one vertex already in an other ek this boolean must be set to false.
-	bool* listVerticesPGOrderedBool;//Contains true iff we have already pu vertex number k in an ek.
+	bool addEk;
+	bool *listVerticesPGOrderedBool, *newEkBool;
 	GRAPH_LIST* tmp;
 	EK_CERT ekCert;
 
-	//We know exactly how many edge clique there is in the graph.
-	ekCert.nbEk = nbVerticesPG / p;
+	ekCert.nbEk = 0;
 	ekCert.nbEltPerEk = p;
-	ekCert.ek = (NUPLE**)malloc(ekCert.nbEk * sizeof(NUPLE*));
-	ekCert.weight = (long double*)malloc(ekCert.nbEk * sizeof(long double));
-	if(!ekCert.ek || !ekCert.weight)
-		NO_MEM_LEFT()
-	for(i = 0 ; i < ekCert.nbEk ; i++)
-	{
-		ekCert.ek[i] = (NUPLE*)malloc(ekCert.nbEltPerEk * sizeof(NUPLE));
-		if(!ekCert.ek[i])
-			NO_MEM_LEFT()
-		for(j = 0 ; j < ekCert.nbEltPerEk ; j++)
-		{
-			ekCert.ek[i][j].length = ekCert.nbEltPerEk;
-			ekCert.ek[i][j].tab = (unsigned int*)malloc(ekCert.nbEltPerEk * sizeof(unsigned int));
-			if(!ekCert.ek[i][j].tab)
-				NO_MEM_LEFT()
-		}
-	}
 
-	//We retreive all the vertices in an array (fast access). We assume g to be ordered.
+	positionNuple = (int*)malloc(p * sizeof(int));
 	listVerticesPGOrdered = (NUPLE*)malloc(nbVerticesPG * sizeof(NUPLE));
 	newEk = (NUPLE*)malloc(p * sizeof(NUPLE));
 	listVerticesPGOrderedBool = (bool*)malloc(nbVerticesPG * sizeof(bool));
-	positionNuple = (int*)malloc(ekCert.nbEltPerEk * sizeof(int));
-	u.length = g->nbVertices;
-	u.tab = (unsigned int*)malloc(u.length * sizeof(unsigned int));
-	if(!listVerticesPGOrdered || !newEk || !listVerticesPGOrderedBool || !positionNuple || !u.tab)
+	newEkBool = (bool*)malloc(p * sizeof(bool));
+	//We do not know the exact number of edge cliques so we consider an upper bound. It will be reallocated at the end of the procedure.
+	nbEdgesG = nbEdges(g);
+	ekCert.ek = (NUPLE**)malloc(nbVerticesPG * nbEdgesG * sizeof(NUPLE*));
+
+	if(!positionNuple || !listVerticesPGOrdered || !newEk || !listVerticesPGOrderedBool || !newEkBool || ! ekCert.ek)
 		NO_MEM_LEFT()
+	for(k = 0 ; k < p ; k++)
+	{
+		newEk[k].tab = (unsigned int*)malloc(g->nbVertices * sizeof(unsigned int));
+		if(!newEk[k].tab)
+			NO_MEM_LEFT()
+		newEk[k].length = g->nbVertices;
+	}
+
 	tmp = powerGraph;
 	for(i = 0 ; i < nbVerticesPG ; i++)
 	{
@@ -196,58 +188,63 @@ EK_CERT ekCert(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p, int field)
 		tmp = tmp->next;
 	}
 
-	//----------------- This part could be improved.
 	for(l = 0 ; l < nbVerticesPG ; l++)
 	{
-		if(!listVerticesPGOrderedBool[l])
-		{//If this is the first time we see this vertex.
-			positionNuple[0] = l;
-			nupleCpy(listVerticesPGOrdered + l, &u);
-			nupleCpy(&u, newEk);
-			for(i = 0 ; i < g->nbVertices ; i++)
+		for(i = 0 ; i < g->nbVertices ; i++)
+		{
+			for(j = i+1 ; j < g->nbVertices ; j++)
 			{
-				for(j = i+1 ; j < g->nbVertices ; j++)
+				if(g->mat[i][j] == 1)
 				{
-					if(g->mat[i][j] == 1)
-					{//We generate the edge clique directed by the edge i,j and containing u.
-						isEkCompletelyNew = true;
-						for(k = 1 ; k < p ; k++)
-						{//We generate the other elements of the current ek.
-							u.tab[i] = (u.tab[i] + 1) % p;
-							u.tab[j] = (u.tab[j] + p-1) % p;
-							positionNuple[k] = dichoSearchNupleList(listVerticesPGOrdered, &u, 0, nbVerticesPG - 1);
-							if(positionNuple[k] == -1 || listVerticesPGOrderedBool[positionNuple[k]])
-							{//This means either we did not generate the whole powerGraph, either we have already an ek containning the current vertex.
-								isEkCompletelyNew = false;
-								break;
-							}
+					nupleCpy(listVerticesPGOrdered + l, newEk);
+					positionNuple[0] = l;
+					addEk = true;
+					for(k = 1 ; k < p ; k++)
+					{
+						nupleCpy(newEk + k-1, newEk + k);
+						newEk[k].tab[i] = (newEk[k].tab[i] + 1) % p;
+						newEk[k].tab[j] = (newEk[k].tab[j] + p-1) % p;
+						positionNuple[k] = dichoSearchNupleList(listVerticesPGOrdered, newEk + k, 0, nbVerticesPG - 1);
+						if(positionNuple[k] == -1)
+						{//This means we have created a vertex that does not exists in powerGraph. Is is possible if the support of powerGraph has been bounded.
+							addEk = false;
+							break;
 						}
-						if(isEkCompletelyNew)
+					}
+					if(addEk)
+					{
+						//First, we check if the newEk has already been found (the order of the elements does not count).
+						for(m = 0 ; m < ekCert.nbEk ; m++)
 						{
+							unsigned int nbEltAlreadySeen = 0;
 							for(k = 0 ; k < p ; k++)
 							{
-								nupleCpy(newEk + k, ekCert.ek[currentEK] + k);
+								if(nupleCmp(ekCert.ek[m] + k, newEk + k) == 0)
+								{
+									if(nbEltAlreadySeen >= 1)
+									{//If two edge cliques have 2 elements in common then it is the same edge clique.
+										addEk = false;
+										goto endEkExists;
+									}
+									nbEltAlreadySeen++;
+								}
+							}
+						}
+						endEkExists:
+						if(addEk)
+						{
+							ekCert.ek[ekCert.nbEk] = (NUPLE*)malloc(p * sizeof(NUPLE));
+							if(!ekCert.ek[ekCert.nbEk])
+								NO_MEM_LEFT()
+							for(k = 0 ; k < p ; k++)
+							{
+								ekCert.ek[ekCert.nbEk][k].tab = (unsigned int*)malloc(g->nbVertices * sizeof(unsigned int));
+								if(!ekCert.ek[ekCert.nbEk][k].tab)
+									NO_MEM_LEFT()
+								nupleCpy(newEk + k, ekCert.ek[ekCert.nbEk] + k);
 								listVerticesPGOrderedBool[positionNuple[k]] = true;
 							}
-							currentEK++;
-							i = g->nbVertices;
-							j = g->nbVertices;
-						}
-						else
-						{//If the ek is not compeletely new then we discard all the vertices we have seen during this round.
-							for(m = 0 ; m <= k ; m++)
-							{
-								if(positionNuple[k] != -1)
-									listVerticesPGOrderedBool[positionNuple[k]] = false;
-							}
-						}
-						printf("\n");
-						for(k = 0 ; k < nbVerticesPG ; k++)
-						{
-							if(listVerticesPGOrderedBool[k])
-								printf("1-");
-							else
-								printf("0-");
+							ekCert.nbEk++;
 						}
 					}
 				}
@@ -255,18 +252,22 @@ EK_CERT ekCert(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p, int field)
 		}
 	}
 
-	displayGraphList(powerGraph);
-	printf("\n\n");
-	displayEkCert(&ekCert);
-	//We free useless memory.
+	//We free some useless memory.
+	//We reallocate ekCert.ek to the right size.
+	//------------ It is not clear this realloc is such a good idea...
+	ekCert.ek = (NUPLE**)realloc(ekCert.ek, ekCert.nbEk * sizeof(NUPLE**));
+
+	free(positionNuple);
+	for(k = 0 ; k < p ; k++)
+		free(newEk[k].tab);
 	free(newEk);
 	free(listVerticesPGOrderedBool);
-	free(positionNuple);
-	free(u.tab);
+	free(newEkBool);
 
 	if(field == 2)
 	{//If the field is F2
 		MATRIX_F2 ekVSVertices;
+		//Since I prefer doing Gauss pivoting on the lines rather than on the columns, I choose to consider this matrix and not its transpose.
 		ekVSVertices.nbRows = ekCert.nbEk;
 		ekVSVertices.nbColumns = nbVerticesPG;
 
@@ -292,4 +293,16 @@ EK_CERT ekCert(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p, int field)
 
 	free(listVerticesPGOrdered);
 	return ekCert;
+}
+
+void freeEkCert(EK_CERT *ekCert)
+{
+	unsigned long i,j;
+	for(i = 0 ; i < ekCert->nbEk ; i++)
+	{
+		for(j = 0 ; j < ekCert->nbEltPerEk ; j++)
+			free(ekCert->ek[i][j].tab);
+		free(ekCert->ek[i]);
+	}
+	free(ekCert->ek);
 }

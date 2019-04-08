@@ -114,6 +114,47 @@ void nupleCpy(const NUPLE *n1, NUPLE *n2)
 		n2->tab[i] = n1->tab[i];
 }
 
+int commonDegre(GRAPH* g)
+{//Compute the common degree of all vertices of G. If there is no common degree, returns -1.
+	if(g->nbVertices == 0)
+		return 0;
+	unsigned long i = 0, j;
+	int result = 0, resultOld = 0;
+	for(j = 0 ; j < g->nbVertices ; j++)
+	{
+		if(g->mat[i][j] == 1)
+			resultOld++;
+	}
+	for(i = 0 ; i < g->nbVertices ; i++)
+	{
+		for(j = 0 ; j < g->nbVertices ; j++)
+		{
+			if(g->mat[i][j] == 1)
+			{
+				if(result == resultOld)
+					return -1;
+				result++;
+			}
+		}
+	}
+	return result;
+}
+
+unsigned int nbEdges(GRAPH* g)
+{
+	unsigned int result = 0;
+	unsigned long i,j;
+	for(i = 0 ; i < g->nbVertices ; i++)
+	{
+		for(j = i+1 ; j < g->nbVertices ; j++)
+		{
+			if(g->mat[i][j] == 1)
+				result++;
+		}
+	}
+	return result;
+}
+
 void sortDn(DN* dn, unsigned long begin, unsigned long end)
 {//Sort lexicographically an instance of DN using quicksort and returns the number of recursives calls used.
 	unsigned int* tmp;

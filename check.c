@@ -57,22 +57,6 @@ int main(int argc, char *argv[])
 	return EXIT_SUCCESS;
 }
 
-unsigned int nbEdges(GRAPH *g)
-{
-	unsigned int nbEdges = 0;
-	unsigned int i,j;
-	
-	for(i = 0 ; i < g->nbVertices ; i++)
-	{
-		for(j = 0 ; j < g->nbVertices ; j++)
-		{
-			if(g->mat[i][j] == 1)
-				nbEdges++;
-		}
-	}
-	return nbEdges / 2;
-}
-
 int commonDegree(GRAPH *g)
 {//This function test whether all the vertices of G have the same degree. If so, it returns this common degree and if not it return -1
 	unsigned long i,j;
