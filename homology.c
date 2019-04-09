@@ -11,14 +11,14 @@
 #include "tools.h"
 #include "rank.h"
 
-unsigned int testHn(const GRAPH* g, const unsigned int nMax, const int field, const int verbose)
+unsigned int testHn(const GRAPH* g, const int nMax, const int field, const int verbose)
 {//This function tests until which nMin <= n <= nMax the hypothesis Hm holds for the graph g.
 	if(field != 0 && field != 2)
 		return 0;
 	bool goOn = true;
 	unsigned long i,j,k,l;
 	unsigned long rankMn = 0, rankMnMoins1 = 0, nbRows, nbColumns;
-	unsigned int n = 0;
+	int n = 0;
 	unsigned int* subseqs = NULL;
 
 	DN dnMoins1, dn;
@@ -35,7 +35,7 @@ unsigned int testHn(const GRAPH* g, const unsigned int nMax, const int field, co
 	rankMnMoins1 = 1;
 
 	n = 1;
-	while(n < nMax && goOn)
+	while((n < nMax || nMax < 0) && goOn)
 	{
 		if(verbose)
 			printf("On teste l'hypothèse H%d.\n\n", n+1);
@@ -327,7 +327,10 @@ DN generateDn(const GRAPH* g, unsigned int n)
 	dn.n = n;
 	dn.nbTuples = nbTuples;
 	if(nbTuples == 0)
+	{
+		free(dnTmp);
 		return dn;
+	}
 	dn.tuples = (unsigned int**)malloc(nbTuples * sizeof(unsigned int*));
 	if(dn.tuples == NULL)
 		NO_MEM_LEFT()
@@ -339,6 +342,7 @@ DN generateDn(const GRAPH* g, unsigned int n)
 		for(j = 0 ; j < n ; j++)
 			dn.tuples[i][j] = dnTmp[i * n + j];
 	}
+	free(dnTmp);
 	if(dn.nbTuples >= 2)
 		sortDn(&dn, 0, dn.nbTuples - 1);
 	return dn;

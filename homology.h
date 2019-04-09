@@ -3,7 +3,7 @@
 
 #include "structs.h"
 
-unsigned int testHn(const GRAPH* g, const unsigned int nMax, const int field, const int verbose);
+unsigned int testHn(const GRAPH* g, const int nMax, const int field, const int verbose);
 DN generateDn(const GRAPH* g, unsigned int n);
 unsigned int* subSequencesLengthMoins1(unsigned int list[], unsigned long length);
 unsigned int** subSequencesFixedLength(unsigned int list[], unsigned long length, unsigned long subSeqLength);

@@ -14,111 +14,159 @@
 
 int main(int argc, char *argv[])
 {
-	bool makeExp = false, save2File = false;
-	int argsOffset = 0, supportMax = -1, verbose = 0, field = 2, n = 7, p = 3;
-	char *file2Save, *tmp;
+	int i;
+	bool makeExp = false, ekCert = false, write2File = false, testHomo = false;
+	int supportMax = -1, verbose = 0, field = 2, n = 2, p = 2;
+	char *file2Write = NULL, *tmp;
 	GRAPH g;
+	GRAPH graphExp;
+	GRAPH_LIST* graphExpList;
 
 	//We initiate the pseudo random generator (used in quicksort)
 	srand(time(NULL));
-	if(argc < 5)
+	if(argc < 3)
 	{
-		fprintf(stderr, "Usage : prog [--makeExp[=outputFile] [--supportMax=k] p] GRAPH_FILE n field [-v]\nPossible values for field are : F2, R\n");
+		fprintf(stderr, "Usage : prog [--makeExp=?] [--supportMax=?] [--ekCert] [--write=file2Write] [--testHomo=?] [-v|-vv|-vvv] GRAPH_FILE field\nPossible values for field are : F2, R\n");
 		return EXIT_FAILURE;
 	}
-	if(strncmp(argv[1], "--makeExp", 9) == 0)
-	{//In this case, we must generate the powerGraph and work on it instead of the graph itself.
-		makeExp = true;
-		strtok(argv[1], "=");
-		file2Save = strtok(NULL, "=");
-		if(file2Save)
-		//We are in the case --makeExp=file2Save
-			save2File = true;
-		argsOffset++;
-		if(strncmp(argv[2], "--supportMax=", 13) == 0)
-		{//If the support must be bounded
-			strtok(argv[2], "=");
+	for(i = 1 ; i < argc - 2; i++)
+	{
+		if(strncmp(argv[i], "--makeExp", 9) == 0)
+		{
+			makeExp = true;
+			strtok(argv[i], "=");
+			tmp = strtok(NULL, "=");
+			if(tmp && string2Int(tmp) >= 1)
+				p = string2Int(tmp);
+			else
+			{
+				fprintf(stderr, "The value of p must be >= 1. We set it to 3 by default.\n");
+				p = 3;
+			}
+		}
+		else if(strncmp(argv[i], "--supportMax", 12) == 0)
+		{
+			strtok(argv[i], "=");
 			tmp = strtok(NULL, "=");
 			if(tmp)
 				supportMax = string2Int(tmp);
-			argsOffset++;
+			else
+			{
+				fprintf(stderr, "The value of supportMax can be any non negative integer. If it is strictly negative, then we won't bound the support. We set it to -1 by default.\n");
+				supportMax = -1;
+			}
 		}
-		p = string2Int(argv[1 + argsOffset]);
-		argsOffset++;
-		if(p <= 0)
+		else if(strcmp(argv[i], "--ekCert") == 0)
+			ekCert = true;
+		else if(strncmp(argv[i], "--write", 7) == 0)
 		{
-			fprintf(stderr, "The value \"p\" must be a positive integer. Beware that in case that \"p\" is not prime, lines in the power graph are not edge-cliques !\n");
-			exit(EXIT_FAILURE);
+			tmp = strtok(argv[i], "=");
+			tmp = strtok(NULL, "=");
+			if(tmp)
+			{
+				file2Write = tmp;
+				write2File = true;
+			}
+			else
+				fprintf(stderr, "You must specify a file name using --write=fileName. We won't write anything on the disk.\n");
 		}
+		else if(strncmp(argv[i], "--testHomo", 10) == 0)
+		{
+			testHomo = true;
+			tmp = strtok(argv[i], "=");
+			tmp = strtok(NULL, "=");
+			if(!tmp)
+				n = -1;
+			else if(string2Int(tmp) >= 0)
+				n = string2Int(tmp);
+			else
+				n = -1;
+		}
+		else if(strncmp(argv[i], "-v", 2) == 0)
+		{
+			if(strcmp(argv[i], "-v") == 0)
+				verbose = 1;
+			else if(strcmp(argv[i], "-vv") == 0)
+				verbose = 2;
+			else
+				verbose = 3;
+		}
+		else
+			fprintf(stderr, "Sorry, I don't know the argument \"%s\".\n", argv[i]);
 	}
 
-	g = loadGraphFromFile(argv[1 + argsOffset]);
+	g =loadGraphFromFile(argv[argc - 2]);
 	if(g.mat == NULL)
 	{//We cannot open the file containning the graph.
-		fprintf(stderr, "Unable to read the graph from \"%s\".\n", argv[1 + argsOffset]);
+		fprintf(stderr, "Unable to read the graph from \"%s\".\n", argv[argc - 2]);
 		return EXIT_FAILURE;
 	}
-	n = string2Int(argv[2 + argsOffset]);
 
-	if(n <= 1)
-	{
-		fprintf(stderr, "There is no point in testing Hn for n <= 1.\nWe take n=2 by default.\n");
-		n = 2;
-	}
-
-	//Verbosity.
-	if(argc >= 5)
-	{
-		if(strcmp(argv[4 + argsOffset], "-v") == 0)
-			verbose = 1;
-		else if(strcmp(argv[4 + argsOffset], "-vv") == 0)
-			verbose = 2;
-		else if(strcmp(argv[4 + argsOffset], "-vvv") == 0)
-			verbose = 3;
-	}
-
-	if(strcmp(argv[3 + argsOffset], "F2") == 0)
-		field = 2;
-	else if(strcmp(argv[3 + argsOffset], "R") == 0)
+	if(strcmp(argv[argc-1], "R") == 0)
 		field = 0;
+	else if(strcmp(argv[argc-1], "F2") == 0)
+		field = 2;
 	else
 	{
-		fprintf(stdout, "Possible values for field are : F2, R\nWe use R by default.");
-		field = 0;
+		fprintf(stderr, "The field should be either \"F2\" or \"R\". We use F2 by default.\n");
+		field = 2;
 	}
+
 
 	if(verbose >= 3)
 		displayGraph(&g);
 
 	if(makeExp)
 	{
-		GRAPH graphExp;
-		GRAPH_LIST* graphExpList;
-		EK_CERT ekCertificate;
 		graphExpList = genPowerGraph(&g, p, supportMax);
 		if(verbose >= 3)
 			displayGraphList(graphExpList);
 		graphExp = graphList2Mat(graphExpList);
-		ekCertificate = findEkCert(&g, graphExpList, p, field);
-		if(ekCertificate.weight)
-		{//If we have found an edge clique certificate.
-			printf("We found an edge clique certificate !\n");
-			displayEkCert(&ekCertificate, false);
-		}
-		else
-			printf("We could not find any certificate...\n");
-		freeEkCert(&ekCertificate);
-		freeGraphList(graphExpList);
-		if(save2File)
-			writeGraph2File(&graphExp, file2Save);
-		//printf("Hn(%d^G) is true until n = %d\n (n_max = %d)", p, testHn(&graphExp, n, field, verbose), n);
-		freeGraph(&graphExp);
+		if(write2File)
+			writeGraph2File(&graphExp, file2Write);
 	}
-	else
+
+	if(ekCert)
 	{
-		if(verbose >= 3)
-			displayGraph(&g);
-		printf("Hn(G) est vraie jusqu'à n = %d\n (n_max = %d)", testHn(&g, n, field, verbose), n);
+		if(!makeExp)
+			fprintf(stderr, "We can only look for an edge clique certificate in a power graph. Use \"--makeExp\".\n");
+		else
+		{
+			EK_CERT ekCertificate;
+			ekCertificate = findEkCert(&g, graphExpList, p, field);
+			if(ekCertificate.weight)
+			{//If we have found an edge clique certificate.
+				printf("We found an edge clique certificate !\n");
+				if(verbose >= 1)
+					displayEkCert(&ekCertificate, false);
+				else
+					printf("Use -v to display it.\n");
+			}
+			else
+			{
+				printf("We could not find any edge clique certificate.\n");
+				if(supportMax >= 0)
+					printf("Perhaps you should increase the support (\"--supportMax\").\n");
+			}
+			freeEkCert(&ekCertificate);
+		}
+	}
+
+	if(testHomo)
+	{
+		if(makeExp)
+		//We run the test on the power graph.
+			printf("Hn(%d^G) is true until n = %d\n (n_max = %d)", p, testHn(&graphExp, n, field, verbose), n);
+		else
+		//We run the test on the graph itself.
+			printf("Hn(G) is true until n = %d\n (n_max = %d)", testHn(&g, n, field, verbose), n);
+	}
+
+	//Finally, we free useless memory.	
+	if(makeExp)
+	{
+		freeGraphList(graphExpList);
+		freeGraph(&graphExp);
 	}
 	freeGraph(&g);
 	return EXIT_SUCCESS;

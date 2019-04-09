@@ -99,6 +99,7 @@ void displayGraphList(GRAPH_LIST* g)
 void displayEkCert(EK_CERT* ekCert, bool displayZeroWeight)
 {
 	unsigned int i,j;
+	unsigned int nbEkUsedInCert = 0;
 	for(i = 0 ; i < ekCert->nbEk ; i++)
 	{
 		for(j = 0 ; j < ekCert->nbEltPerEk ; j++)
@@ -112,6 +113,8 @@ void displayEkCert(EK_CERT* ekCert, bool displayZeroWeight)
 		}
 		if(displayZeroWeight || ekCert->weight[i])
 			printf("\tpoids = %Lf\n", ekCert->weight[i]);
+		if(ekCert->weight[i])
+			nbEkUsedInCert++;
 	}
-	printf("There are %d edge cliques.\n", ekCert->nbEk);
+	printf("There are %d edge cliques but only %d are used in this edge clique certificate.\n", ekCert->nbEk, nbEkUsedInCert);
 }

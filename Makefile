@@ -1,5 +1,5 @@
-#OPT=-O3
-OPT=-g -O0 -fno-inline
+OPT=-O3
+#OPT=-g -O0 -fno-inline
 all: main check
 
 main: main.o io.o display.o homology.o tools.o rank.o powerGraph.o graphList.o
@@ -21,7 +21,7 @@ powerGraph.o: powerGraph.c io.h graphList.h structs.h tools.h rank.h
 graphList.o: graphList.c io.h structs.h tools.h
 	gcc $(OPT) -c graphList.c -Wall -Wextra -std=gnu89 -o graphList.o
 
-check: check.o io.o display.o graphList.o tools.o
+check: check.o io.o display.o graphList.o powerGraph.o tools.o
 	gcc check.o io.o display.o graphList.o powerGraph.o tools.o -lm -lgmp -o check
 check.o: check.c display.h check.h io.h graphList.h powerGraph.h structs.h tools.h
 	gcc $(OPT) -c check.c -Wall -Wextra -std=gnu89 -o check.o

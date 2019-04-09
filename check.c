@@ -13,100 +13,225 @@
 
 int main(int argc, char *argv[])
 {
+	int i;
+	bool makeExp = false, ekCert = false, checkNbVertices = false, checkNbEdges = false, checkCommonDegree = false;
+	unsigned int nbVerticesExpected = 0, nbEdgesExpected = 0;
+	int supportMax = -1, verbose = 0, field = 2, p = 2, commonDegreeExpected = 0;
+	char *tmp;
+	GRAPH g;
+	GRAPH graphExp;
+	GRAPH_LIST* graphExpList = NULL;
+
 	if(argc < 3)
 	{
-		fprintf(stderr, "Usage : prog GRAPH_FILE [nbVertices [nbEdges] [commonDegree]] [--testEkCert supportMax p field]\n");
+		fprintf(stderr, "Usage : prog [--makeExp=?] [--supportMax=?] [--ekCert] [--nbVertices=?] [--nbEdges=?] [--commonDegree=?] GRAPH_FILE field\nPossible values for field are : F2, R\n");
 		return EXIT_FAILURE;
 	}
-	GRAPH g = loadGraphFromFile(argv[1]);
-	if(strcmp(argv[2], "--testEkCert") != 0)
+	for(i = 1 ; i < argc - 2; i++)
 	{
-		unsigned int nbVerticesExpected = (unsigned int)string2Int(argv[2]);
-		bool checkNbEdges = false, checkCommonDegree = false;
-		unsigned int nbEdgesExpected = 0;
-		int commonDegreeExpected = 0;
-		if(argc >= 4)
+		if(strncmp(argv[i], "--makeExp", 9) == 0)
 		{
-			checkNbEdges = true;
-			nbEdgesExpected = (unsigned int)string2Int(argv[3]);
+			makeExp = true;
+			strtok(argv[i], "=");
+			tmp = strtok(NULL, "=");
+			if(tmp && string2Int(tmp) >= 1)
+				p = string2Int(tmp);
+			else
+			{
+				fprintf(stderr, "The value of p must be >= 1. We set it to 3 by default.\n");
+				p = 3;
+			}
 		}
-		if(argc >= 5)
+		else if(strncmp(argv[i], "--supportMax", 12) == 0)
 		{
-			checkCommonDegree = true;
-			commonDegreeExpected = string2Int(argv[4]);
+			strtok(argv[i], "=");
+			tmp = strtok(NULL, "=");
+			if(tmp)
+				supportMax = string2Int(tmp);
+			else
+			{
+				fprintf(stderr, "The value of supportMax can be any non negative integer. If it is strictly negative, then we won't bound the support. We set it to -1 by default.\n");
+				supportMax = -1;
+			}
 		}
-
-		//Tests
-		if(g.nbVertices != nbVerticesExpected)
-			printf("Error : The graph \"%s\" has %ld vertices instead of %d\n", argv[1], g.nbVertices, nbVerticesExpected);
+		else if(strcmp(argv[i], "--ekCert") == 0)
+			ekCert = true;
+		else if(strncmp(argv[i], "--nbVertices", 12) == 0)
+		{
+			strtok(argv[i], "=");
+			tmp = strtok(NULL, "=");
+			if(tmp)
+			{
+				nbVerticesExpected = string2Int(tmp);
+				checkNbVertices = true;
+			}
+			else
+				fprintf(stderr, "The number of vertices must be a non negative integer.\n");
+		}
+		else if(strncmp(argv[i], "--nbEdges", 9) == 0)
+		{
+			strtok(argv[i], "=");
+			tmp = strtok(NULL, "=");
+			if(tmp)
+			{
+				nbEdgesExpected = string2Int(tmp);
+				checkNbEdges = true;
+			}
+			else
+				fprintf(stderr, "The number of edges must be a non negative integer.\n");
+		}
+		else if(strncmp(argv[i], "--commonDegree", 14) == 0)
+		{
+			strtok(argv[i], "=");
+			tmp = strtok(NULL, "=");
+			if(tmp)
+			{
+				commonDegreeExpected = string2Int(tmp);
+				checkCommonDegree = true;
+			}
+			else
+				fprintf(stderr, "The common degree must be a non negative integer.\n");
+		}
+		else if(strncmp(argv[i], "-v", 2) == 0)
+		{
+			if(strcmp(argv[i], "-v") == 0)
+				verbose = 1;
+			else if(strcmp(argv[i], "-vv") == 0)
+				verbose = 2;
+			else
+				verbose = 3;
+		}
 		else
-			printf("The number of vertices is OK.\n");
-		if(checkNbEdges)
+			fprintf(stderr, "Sorry, I don't know the argument \"%s\".\n", argv[i]);
+	}
+
+	g = loadGraphFromFile(argv[argc-2]);
+	if(g.mat == NULL)
+	{//We cannot open the file containning the graph.
+		fprintf(stderr, "Unable to read the graph from \"%s\".\n", argv[argc - 2]);
+		return EXIT_FAILURE;
+	}
+
+	if(strcmp(argv[argc-1], "R") == 0)
+		field = 0;
+	else if(strcmp(argv[argc-1], "F2") == 0)
+		field = 2;
+	else
+	{
+		fprintf(stderr, "The field should be either \"F2\" or \"R\". We use F2 by default.\n");
+		field = 2;
+	}
+
+	if(makeExp)
+	{
+		graphExpList = genPowerGraph(&g, p, supportMax);
+		if(verbose >= 3)
+			displayGraphList(graphExpList);
+		graphExp = graphList2Mat(graphExpList);
+	}
+
+	if(ekCert)
+	{
+		if(!makeExp)
+			fprintf(stderr, "We can only look for an edge clique certificate in a power graph. Use \"--makeExp\".\n");
+		else
+		{
+			EK_CERT ekCertificate;
+			ekCertificate = findEkCert(&g, graphExpList, p, field);
+			if(ekCertificate.weight)
+			{//If we have found an edge clique certificate.
+				printf("We found an edge clique certificate !\n");
+				if(verbose >= 1)
+					displayEkCert(&ekCertificate, false);
+				else
+					printf("Use -v to display it.\n");
+				printf("We will now check if this certificate is valid.\n");
+				GRAPH_LIST* center = checkEkCert(graphExpList, &ekCertificate, field);
+				if(center)
+				{
+					printf("This certificate is \e[1mvalid\e[0m ! Its center is : ");
+					displayNuple(&center->v);
+					printf("\n");
+				}
+				else
+					printf("Unfortunately, this certificate is n\e[1minvalid\e[0m.\n");
+			}
+			else
+			{
+				printf("We could not find any edge clique certificate.\n");
+				if(supportMax >= 0)
+					printf("Perhaps you should increase the support (\"--supportMax\").\n");
+			}
+			freeEkCert(&ekCertificate);
+		}
+	}
+
+	if(checkNbVertices)
+	{
+		if(makeExp)
+		{//If we have built the power graph, then we make the tests on it.
+			if(graphExp.nbVertices != nbVerticesExpected)
+				printf("\e[1mError\e[0m : The graph %d^G has %ld vertices instead of %d\n", p, graphExp.nbVertices, nbVerticesExpected);
+			else
+				printf("The number of vertices of %d^G is \e[1mOK\e[0m.\n", p);
+		}
+		else
+		{
+			if(g.nbVertices != nbVerticesExpected)
+				printf("\e[1mError\e[0m : The graph G has %ld vertices instead of %d\n", g.nbVertices, nbVerticesExpected);
+			else
+				printf("The number of vertices of G is \e[1mOK\e[0m.\n");
+		}
+	}
+
+	if(checkNbEdges)
+	{
+		if(makeExp)
+		{//If we have built the power graph, then we make the tests on it.
+			unsigned int nbEdgesG = nbEdges(&graphExp);
+			if(nbEdgesExpected != nbEdgesG)
+				printf("\e[1mError\e[0m : The graph %d^G has %d edges instead of %d\n", p, nbEdgesG, nbEdgesExpected);
+			else
+				printf("The number of edges of %d^G is \e[1mOK\e[0m.\n", p);
+		}
+		else
 		{
 			unsigned int nbEdgesG = nbEdges(&g);
 			if(nbEdgesExpected != nbEdgesG)
-				printf("Error: The graph \"%s\" has %d edges instead of %d\n", argv[1], nbEdgesG, nbEdgesExpected);
+				printf("\e[1mError\e[0m : The graph G has %d edges instead of %d\n", nbEdgesG, nbEdgesExpected);
 			else
-				printf("The number of edges is OK.\n");
+				printf("The number of edges of G is \e[1mOK\e[0m.\n");
 		}
-		if(checkCommonDegree)
+	}
+
+	if(checkCommonDegree)
+	{
+		if(makeExp)
+		{//If we have built the power graph, then we make the tests on it.
+			int commonDegreeG = commonDegree(&graphExp);
+			if(commonDegreeG == -1)
+				printf("The graph %d^G has no common degree.\n", p);
+			else if(commonDegreeG != commonDegreeExpected)
+				printf("\e[1mError\e[0m : The graph %d^G has common degree %d instead of %d.\n", p, commonDegreeG, commonDegreeExpected);
+			else
+				printf("The common degree of %d^G is \e[1mOK\e[0m (%d).\n", p, commonDegreeG);
+		}
+		else
 		{
 			int commonDegreeG = commonDegree(&g);
 			if(commonDegreeG == -1)
-				printf("The graph \"%s\" has no common degree.\n", argv[1]);
+				printf("The graph G has no common degree.\n");
 			else if(commonDegreeG != commonDegreeExpected)
-				printf("Error: The graph \"%s\" has common degree %d instead of %d.\n", argv[1], commonDegreeG, commonDegreeExpected);
+				printf("\e[1mError\e[0m : The graph G has common degree %d instead of %d.\n", commonDegreeG, commonDegreeExpected);
 			else
-				printf("The common degree is OK.\n");
+				printf("The common degree of G is \e[1mOK\e[0m (%d).\n", commonDegreeG);
 		}
 	}
-	else if(strcmp(argv[2], "--testEkCert") == 0 && argc > 5)
-	{//In that case, we generate the powerGraph of the graph given in input.
-		int field, p, supportMax;
-		supportMax = string2Int(argv[3]);
-		if(supportMax < 0)
-			supportMax = g.nbVertices;
-		p = string2Int(argv[4]);
-		if(p < 1)
-		{
-			fprintf(stderr, "The number p must be an integer bigger than 1.\n");
-			exit(EXIT_FAILURE);
-		}
 
-		if(strcmp(argv[4], "F2") == 0)
-			field = 2;
-		else if(strcmp(argv[4], "R") == 0)
-			field = -1;
-		else
-			field = 2;
-
-		GRAPH graphExp;
-		GRAPH_LIST* graphExpList;
-		EK_CERT ekCertificate;
-		graphExpList = genPowerGraph(&g, p, supportMax);
-//		if(verbose >= 3)
-//			displayGraphList(graphExpList);
-		graphExp = graphList2Mat(graphExpList);
-		ekCertificate = findEkCert(&g, graphExpList, p, field);
-		if(ekCertificate.weight)
-		{//If we have found an edge clique certificate.
-			printf("We found an edge clique certificate !\n");
-			displayEkCert(&ekCertificate, false);
-			GRAPH_LIST* checkCertif = checkEkCert(graphExpList, &ekCertificate, field);
-			if(checkCertif)
-			{
-				printf("This certificate is valid ! The center is : ");
-				displayNuple(&checkCertif->v);
-			}
-			else
-				printf("Unfortunately, this certificate is not valid...\n");
-		}
-		else
-			printf("We could not find any certificate...\n");
-		freeEkCert(&ekCertificate);
-		freeGraphList(graphExpList);
+	if(makeExp)
+	{
 		freeGraph(&graphExp);
-
+		freeGraphList(graphExpList);
 	}
 	freeGraph(&g);
 	return EXIT_SUCCESS;
