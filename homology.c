@@ -27,7 +27,7 @@ unsigned int testHn(const GRAPH* g, const int nMax, const int field, const int v
 	MATRIX_R mNR;
 	mNR.mat = NULL;
 
-	if(nMax <= 1)
+	if(nMax >= 0 && nMax <= 1)
 	//We assume the graph to be non empty and conected.
 		return 1;
 
@@ -38,7 +38,7 @@ unsigned int testHn(const GRAPH* g, const int nMax, const int field, const int v
 	while((n < nMax || nMax < 0) && goOn)
 	{
 		if(verbose)
-			printf("On teste l'hypothèse H%d.\n\n", n+1);
+			printf("We test the hypothesis H%d.\n\n", n+1);
 
 		//We generate Dn and Dn-1
 		dn = generateDn(g, n+1);
@@ -144,7 +144,7 @@ unsigned int testHn(const GRAPH* g, const int nMax, const int field, const int v
 		}
 		//Beware, computing the rank changes the matrix !
 		if(verbose >= 2)
-			printf("On calcule le rang de M%d qui est de taille %ld x %ld.\n", dn.n, nbRows, nbColumns);
+			printf("We compute the rank of M%d which has size %ld x %ld.\n", dn.n, nbRows, nbColumns);
 
 		switch(field)
 		{//We select the appropriate field.
@@ -156,19 +156,19 @@ unsigned int testHn(const GRAPH* g, const int nMax, const int field, const int v
 			rankMn = rankF2(&mNF2);
 		}
 		if(verbose)
-			printf("\nLe rang de M%d vaut : %ld\n", dn.n, rankMn);
+			printf("\nThe rank of M%d is : %ld\n", dn.n, rankMn);
 
 		if(rankMn == dnMoins1.nbTuples - rankMnMoins1)
 		{
 			n++;
 			rankMnMoins1 = rankMn;
 			if(verbose)
-				printf("\nH%d est vraie.\n", n);
+				printf("\nH%d is \e[1mtrue\e[0m.\n", n);
 		}
 		else
 		{
 			if(verbose)
-				printf("\nH%d est fausse.\n", n+1);
+				printf("\nH%d is \e[1mfalse\e[0m.\n", n+1);
 			goOn = false;
 		}
 
@@ -347,7 +347,7 @@ DN generateDn(const GRAPH* g, unsigned int n)
 		sortDn(&dn, 0, dn.nbTuples - 1);
 	return dn;
 }
-
+#
 unsigned int* subSequencesLengthMoins1(unsigned int list[], unsigned long length)
 {//Compute all the subsequences of length length - 1
 //It's much faster than calling the function subSequences and use only a small part of the result !
