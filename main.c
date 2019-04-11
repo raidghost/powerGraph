@@ -8,6 +8,7 @@
 #include "io.h"
 #include "graphList.h"
 #include "powerGraph.h"
+#include "randomGraphs.h"
 #include "structs.h"
 #include "tools.h"
 
@@ -22,7 +23,7 @@ int main(int argc, char *argv[])
 	GRAPH graphExp;
 	GRAPH_LIST* graphExpList;
 
-	//We initiate the pseudo random generator (used in quicksort)
+	//We initiate the pseudo random generator (used in quicksort and in randomGraphs)
 	srand(time(NULL));
 	if(argc < 3)
 	{
@@ -95,11 +96,24 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "Sorry, I don't know the argument \"%s\".\n", argv[i]);
 	}
 
-	g =loadGraphFromFile(argv[argc - 2]);
-	if(g.mat == NULL)
-	{//We cannot open the file containning the graph.
-		fprintf(stderr, "Unable to read the graph from \"%s\".\n", argv[argc - 2]);
-		return EXIT_FAILURE;
+	//We load the graph.
+	if(strcmp(argv[argc - 2], "RANDOM") == 0)
+		g = createRandomGraph(-1, 0.5, true);
+	else if(strncmp(argv[argc - 2], "RANDOM=", 7) == 0)
+	{
+		tmp = strtok(argv[argc - 2], "=");
+		tmp = strtok(NULL, "=");
+		if(tmp)
+			g = createRandomGraph(string2Int(tmp), 0.5, true);
+	}
+	else
+	{
+		g =loadGraphFromFile(argv[argc - 2]);
+		if(g.mat == NULL)
+		{//We cannot open the file containning the graph.
+			fprintf(stderr, "Unable to read the graph from \"%s\".\n", argv[argc - 2]);
+			return EXIT_FAILURE;
+		}
 	}
 
 	if(strcmp(argv[argc-1], "R") == 0)
@@ -156,10 +170,10 @@ int main(int argc, char *argv[])
 	{
 		if(makeExp)
 		//We run the test on the power graph.
-			printf("Hn(%d^G) is true until n = %d\n (n_max = %d)", p, testHn(&graphExp, n, field, verbose), n);
+			printf("Hn(%d^G) is true until n = %d (n_max = %d)\n", p, testHn(&graphExp, n, field, verbose), n);
 		else
 		//We run the test on the graph itself.
-			printf("Hn(G) is true until n = %d\n (n_max = %d)", testHn(&g, n, field, verbose), n);
+			printf("Hn(G) is true until n = %d (n_max = %d)\n", testHn(&g, n, field, verbose), n);
 	}
 
 	//Finally, we free useless memory.	

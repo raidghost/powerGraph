@@ -7,5 +7,6 @@ unsigned int testHn(const GRAPH* g, const int nMax, const int field, const int v
 DN generateDn(const GRAPH* g, unsigned int n);
 unsigned int* subSequencesLengthMoins1(unsigned int list[], unsigned long length);
 unsigned int** subSequencesFixedLength(unsigned int list[], unsigned long length, unsigned long subSeqLength);
+bool isGraphConnected(const GRAPH *g);
 
 #endif

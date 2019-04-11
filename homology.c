@@ -27,17 +27,29 @@ unsigned int testHn(const GRAPH* g, const int nMax, const int field, const int v
 	MATRIX_R mNR;
 	mNR.mat = NULL;
 
-	if(nMax >= 0 && nMax <= 1)
-	//We assume the graph to be non empty and conected.
-		return 1;
+	if(verbose >= 2)
+		printf("We test the hypothesis H1.\n\n");
+	if(isGraphConnected(g))
+	{
+		if(verbose)
+			printf("H1 is \e[1mtrue\e[0m.\n");
+		if(nMax == 1)
+			return 1;
+	}
+	else
+	{
+		if(verbose)
+			printf("H1 is \e[1mfalse\e[0m.\n");
+		return 0;
+	}
 
 	dnMoins1 = generateDn(g, 1);
 	rankMnMoins1 = 1;
 
 	n = 1;
-	while((n < nMax || nMax < 0) && goOn)
+	while((n < nMax || nMax <= 0) && goOn)
 	{
-		if(verbose)
+		if(verbose >= 2)
 			printf("We test the hypothesis H%d.\n\n", n+1);
 
 		//We generate Dn and Dn-1
@@ -155,7 +167,7 @@ unsigned int testHn(const GRAPH* g, const int nMax, const int field, const int v
 			case 2:
 			rankMn = rankF2(&mNF2);
 		}
-		if(verbose)
+		if(verbose >= 2)
 			printf("\nThe rank of M%d is : %ld\n", dn.n, rankMn);
 
 		if(rankMn == dnMoins1.nbTuples - rankMnMoins1)
@@ -163,12 +175,12 @@ unsigned int testHn(const GRAPH* g, const int nMax, const int field, const int v
 			n++;
 			rankMnMoins1 = rankMn;
 			if(verbose)
-				printf("\nH%d is \e[1mtrue\e[0m.\n", n);
+				printf("H%d is \e[1mtrue\e[0m.\n", n);
 		}
 		else
 		{
 			if(verbose)
-				printf("\nH%d is \e[1mfalse\e[0m.\n", n+1);
+				printf("H%d is \e[1mfalse\e[0m.\n", n+1);
 			goOn = false;
 		}
 
@@ -477,4 +489,59 @@ unsigned int** subSequencesFixedLength(unsigned int list[], unsigned long length
 	free(subseqs);
 	free(newSubSeq);
 	return result;
+}
+
+bool isGraphConnected(const GRAPH *g)
+{
+	if(g->nbVertices <= 1)
+		return true;
+	bool connected = true, goOn = true;
+	bool *vertices2Explore, * verticesExplored;
+	unsigned long currentVertex;
+	unsigned long i;
+
+	vertices2Explore = (bool*)malloc(g->nbVertices * sizeof(bool));
+	verticesExplored = (bool*)malloc(g->nbVertices * sizeof(bool));
+	if(!vertices2Explore || !verticesExplored)
+		NO_MEM_LEFT()
+	for(i = 0 ; i < g->nbVertices ; i++)
+	{
+		vertices2Explore[i] = false;
+		verticesExplored[i] = false;
+	}
+
+	currentVertex = 0;
+	while(goOn)
+	{
+		for(i = 0 ; i < g->nbVertices ; i++)
+		{
+			if(g->mat[i][currentVertex] == 1 && i != currentVertex && !verticesExplored[i] && !vertices2Explore[i])
+				vertices2Explore[i] = true;
+		}
+		verticesExplored[currentVertex] = true;
+		vertices2Explore[currentVertex] = false;
+		goOn = false;
+		for(i = 0 ; i < g->nbVertices ; i++)
+		{
+			if(vertices2Explore[i])
+			{
+				currentVertex = i;
+				goOn = true;
+				break;
+			}
+		}
+	}
+
+	for(i = 0 ; i < g->nbVertices ; i++)
+	{
+		if(!verticesExplored[i])
+		{
+			connected = false;
+			break;
+		}
+	}
+
+	free(vertices2Explore);
+	free(verticesExplored);
+	return connected;
 }

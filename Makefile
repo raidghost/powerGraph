@@ -2,9 +2,9 @@
 OPT=-g -O0 -fno-inline
 all: main check
 
-main: main.o io.o display.o homology.o tools.o rank.o powerGraph.o graphList.o
-	gcc main.o io.o display.o homology.o tools.o rank.o powerGraph.o graphList.o -lm -lgmp -o main
-main.o: main.c display.h homology.h io.h graphList.h powerGraph.h structs.h tools.h
+main: main.o io.o display.o homology.o tools.o randomGraphs.o rank.o powerGraph.o graphList.o
+	gcc main.o io.o display.o homology.o tools.o randomGraphs.o rank.o powerGraph.o graphList.o -lm -lgmp -o main
+main.o: main.c display.h homology.h io.h graphList.h randomGraphs.h powerGraph.h structs.h tools.h
 	gcc $(OPT) -c main.c -Wall -Wextra -std=gnu89 -o main.o
 io.o: io.c limits.h structs.h tools.h
 	gcc $(OPT) -c io.c -Wall -Wextra -std=gnu89 -o io.o
@@ -14,6 +14,8 @@ homology.o: homology.c display.h homology.h io.h limits.h structs.h tools.h rank
 	gcc $(OPT) -c homology.c -Wall -Wextra -std=gnu89 -o homology.o
 tools.o: tools.c tools.h
 	gcc $(OPT) -c tools.c -Wall -Wextra -std=gnu89 -o tools.o
+randomGraphs.o: homology.h randomGraphs.c structs.h
+	gcc $(OPT) -c randomGraphs.c -Wall -Wextra -std=gnu89 -o randomGraphs.o
 rank.o: rank.c structs.h
 	gcc $(OPT) -c rank.c -Wall -Wextra -std=gnu89 -lgmp -o rank.o
 powerGraph.o: powerGraph.c io.h graphList.h structs.h tools.h rank.h
