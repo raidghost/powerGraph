@@ -112,7 +112,7 @@ void displayEkCert(EK_CERT* ekCert, bool displayZeroWeight)
 			}
 		}
 		if(displayZeroWeight || ekCert->weight[i])
-			printf("\tpoids = %Lf\n", ekCert->weight[i]);
+			printf("\tweigth = %Lf\n", ekCert->weight[i]);
 		if(ekCert->weight[i])
 			nbEkUsedInCert++;
 	}

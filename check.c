@@ -154,7 +154,7 @@ int main(int argc, char *argv[])
 					printf("\n");
 				}
 				else
-					printf("Unfortunately, this certificate is n\e[1minvalid\e[0m.\n");
+					printf("Unfortunately, this certificate is \e[1minvalid\e[0m.\n");
 			}
 			else
 			{
@@ -315,7 +315,7 @@ GRAPH_LIST* checkEkCert(GRAPH_LIST* powerGraph, EK_CERT* ekCert, int field)
 		}
 	}
 	unsigned int nbZeroEntries = 0;
-	if(field == -1)
+	if(field == 0)
 	{
 		for(i = 0 ; i < nbVerticesPG ; i++)
 		{

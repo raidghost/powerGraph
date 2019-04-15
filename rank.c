@@ -122,7 +122,6 @@ unsigned long rankR(MATRIX_R* mat)
 			//Since we have performed gaussian elimination, we increment both i and j (see below).
 			i++;
 		}
-		//In any case we try 
 		j++;
 	}
 	mpq_clears(zero,coef,prodTmp,NULL);

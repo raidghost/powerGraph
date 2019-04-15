@@ -265,7 +265,8 @@ EK_CERT findEkCert(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p, int field)
 	free(newEkBool);
 
 	if(field == 2)
-	{//If the field is F2
+	{
+		//If the field is F2
 		MATRIX_F2 ekVSVertices;
 		//Since I prefer doing Gauss pivoting on the lines rather than on the columns, I choose to consider this matrix and not its transpose.
 		ekVSVertices.nbRows = ekCert.nbEk;
@@ -274,7 +275,7 @@ EK_CERT findEkCert(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p, int field)
 		ekVSVertices.mat = (char**)malloc(ekVSVertices.nbRows * sizeof(char*));
 		if(!ekVSVertices.mat)
 			NO_MEM_LEFT()
-		for(i = 0 ; i < ekCert.nbEk ; i++)
+		for(i = 0 ; i < ekVSVertices.nbRows ; i++)
 		{
 			ekVSVertices.mat[i] = (char*)calloc(ekVSVertices.nbColumns, ekVSVertices.nbColumns * sizeof(char));
 			if(!ekVSVertices.mat[i])
@@ -285,7 +286,7 @@ EK_CERT findEkCert(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p, int field)
 
 //--------- Start Gauss
 		MATRIX_F2 q;
-		unsigned long max, rank = 0, firstNonZeroEntry = 0;
+		unsigned long max, firstNonZeroEntry = 0;
 		char *tmp = NULL;
 
 		q.nbRows = ekCert.nbEk;
@@ -299,6 +300,7 @@ EK_CERT findEkCert(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p, int field)
 			q.mat[i] = (char*)calloc(q.nbColumns, q.nbColumns * sizeof(char));
 			if(!q.mat[i])
 				NO_MEM_LEFT()
+			//We initialize Q to the identity matrix.
 			q.mat[i][i] = 1;
 		}
 
@@ -329,10 +331,7 @@ EK_CERT findEkCert(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p, int field)
 					break;
 				}
 			}
-			if(j == ekVSVertices.nbColumns)
-			//If the maximum line is zero then we have the rank.
-				break;
-			else if(max > i)
+			if(max > i)
 			{//We put the max in position i.
 				tmp = ekVSVertices.mat[i];
 				ekVSVertices.mat[i] = ekVSVertices.mat[max];
@@ -343,9 +342,6 @@ EK_CERT findEkCert(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p, int field)
 				q.mat[i] = q.mat[max];
 				q.mat[max] = tmp;
 			}
-			rank++;
-			if(rank == ekVSVertices.nbRows || rank == ekVSVertices.nbColumns)
-				break;
 			//We xor every line under and above line i that needs to be xored.
 			for(j = i + 1 ; j < ekVSVertices.nbRows ; j++)
 			{
@@ -386,6 +382,9 @@ EK_CERT findEkCert(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p, int field)
 					nb1OnQRowOld = nb1OnQRow;
 					bestRow = i;
 				}
+				/*NB : We try to find an edge clique certificate with as many zero coef as possible (so that we use the minumum number of edge clique).
+				However, this does not mean that there does not exists a better certificate (with less edge clique) if we consider the power graph with
+				lower bounded support ! */
 			}
 		}
 		if(bestRow <= q.nbRows)
@@ -405,6 +404,166 @@ EK_CERT findEkCert(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p, int field)
 		free(ekVSVertices.mat);
 		for(i = 0 ; i < q.nbRows ; i++)
 			free(q.mat[i]);
+		free(q.mat);
+	}
+	else if(field == 0)
+	{//If the field is R
+		MATRIX_R ekVSVertices;
+		//Since I prefer doing Gauss pivoting on the lines rather than on the columns, I choose to consider this matrix and not its transpose.
+		ekVSVertices.nbRows = ekCert.nbEk;
+		ekVSVertices.nbColumns = nbVerticesPG;
+
+		ekVSVertices.mat = (mpq_t**)malloc(ekVSVertices.nbRows * sizeof(mpq_t*));
+		if(!ekVSVertices.mat)
+			NO_MEM_LEFT()
+		for(i = 0 ; i < ekCert.nbEk ; i++)
+		{
+			ekVSVertices.mat[i] = (mpq_t*)malloc(ekVSVertices.nbColumns * sizeof(mpq_t));
+			if(!ekVSVertices.mat[i])
+				NO_MEM_LEFT()
+			for(j = 0 ; j < ekVSVertices.nbColumns ; j++)
+				mpq_init(ekVSVertices.mat[i][j]);
+			for(k = 0 ; k < ekCert.nbEltPerEk ; k++)
+				mpq_set_si(ekVSVertices.mat[i][dichoSearchNupleList(listVerticesPGOrdered, &ekCert.ek[i][k], 0, nbVerticesPG - 1)],1,1);
+		}
+
+//--------- Start Gauss
+		MATRIX_R q;
+
+		q.nbRows = ekCert.nbEk;
+		q.nbColumns = ekCert.nbEk;
+
+		q.mat = (mpq_t**)malloc(q.nbRows * sizeof(mpq_t*));
+		if(!q.mat)
+			NO_MEM_LEFT()
+		for(i = 0 ; i < q.nbRows ; i++)
+		{
+			q.mat[i] = (mpq_t*)malloc(q.nbColumns * sizeof(mpq_t));
+			if(!q.mat[i])
+				NO_MEM_LEFT()
+			for(j = 0 ; j < q.nbColumns ; j++)
+				mpq_init(q.mat[i][j]);
+			mpq_set_si(q.mat[i][i], 1, 1);
+		}
+
+		//We start Gauss pivoting
+		unsigned long pivotRow;
+		mpq_t zero,coef,prodTmp;
+		mpq_t *tmp = NULL;
+
+		mpq_inits(zero,coef,prodTmp,NULL);
+
+		i = 0;
+		j = 0;
+		while(i < ekVSVertices.nbRows && j < ekVSVertices.nbColumns)
+		{
+			if(mpq_equal(ekVSVertices.mat[i][j],zero))
+			{//If ekVSVertices.mat[i][j] == 0, we have to find an other pivot. We try on column j.
+				pivotRow = i;
+				for(k = i+1 ; k < ekVSVertices.nbRows ; k++)
+				{
+					if(!mpq_equal(ekVSVertices.mat[k][j],zero))
+					{//If ekVSVertices.mat[k][j] != 0
+						pivotRow = k;
+						break;
+					}
+				}
+				if(pivotRow > i)
+				{//We put the pivot line at position i.
+					tmp = ekVSVertices.mat[i];
+					ekVSVertices.mat[i] = ekVSVertices.mat[pivotRow];
+					ekVSVertices.mat[pivotRow] = tmp;
+
+					//We perform the same operation on matrix Q.
+					tmp = q.mat[i];
+					q.mat[i] = q.mat[pivotRow];
+					q.mat[pivotRow] = tmp;
+				}
+			}
+			if(!mpq_equal(ekVSVertices.mat[i][j],zero))
+			{//Otherwise this line has only zeros.
+				//We perform, when needed, the gaussian elimination.
+				for(k = i+1 ; k < ekVSVertices.nbRows ; k++)
+				{
+					if(!mpq_equal(ekVSVertices.mat[k][j],zero))
+					{
+						mpq_div(coef,ekVSVertices.mat[k][j],ekVSVertices.mat[i][j]);
+						for(l = j ; l < ekVSVertices.nbColumns ; l++)
+						{
+							mpq_mul(prodTmp,coef,ekVSVertices.mat[i][l]);
+							mpq_sub(ekVSVertices.mat[k][l],ekVSVertices.mat[k][l],prodTmp);
+						}
+						//We perform the same operation on matrix Q.
+						for(l = 0 ; l < q.nbColumns ; l++)
+						{
+							mpq_mul(prodTmp,coef,q.mat[i][l]);
+							mpq_sub(q.mat[k][l],q.mat[k][l],prodTmp);
+						}
+					}
+				}
+				//Since we have performed gaussian elimination, we increment both i and j (see below).
+				i++;
+			}
+			j++;
+		}
+//--------- End Gauss
+	
+		unsigned int nbNonZeroCoefOnThisRow, nbNonZeroCoefOnQRow, nbNonZeroCoefOnQRowOld = q.nbColumns + 1, bestRow = q.nbRows + 1;
+		for(i = 0 ; i < ekVSVertices.nbRows ; i++)
+		{
+			nbNonZeroCoefOnThisRow = 0;
+			nbNonZeroCoefOnQRow = 0;
+			for(j = 0 ; j < ekVSVertices.nbColumns ; j++)
+			{
+				if(!mpq_equal(ekVSVertices.mat[i][j],zero))
+					nbNonZeroCoefOnThisRow++;
+			}
+			if(nbNonZeroCoefOnThisRow == 1)
+			{
+				//We count the number of non zero coef in the corresponding q row (We want to minimize it !).
+				for(j = 0 ; j < q.nbColumns ; j++)
+				{
+					if(!mpq_equal(q.mat[i][j],zero))
+						nbNonZeroCoefOnQRow++;
+					if(nbNonZeroCoefOnQRow > nbNonZeroCoefOnQRowOld)
+						break;
+				}
+				if(nbNonZeroCoefOnQRowOld > nbNonZeroCoefOnQRow)
+				{
+					nbNonZeroCoefOnQRowOld = nbNonZeroCoefOnQRow;
+					bestRow = i;
+				}
+				/*NB : We try to find an edge clique certificate with as many zero coef as possible (so that we use the minumum number of edge clique).
+				However, this does not mean that there does not exists a better certificate (with less edge clique) if we consider the power graph with
+				lower bounded support ! */
+			}
+		}
+		if(bestRow <= q.nbRows)
+		{//If we found some row with exactly one 1 in the matrix in row echelon form.
+			ekCert.weight = (long double*)calloc(ekCert.nbEk, ekCert.nbEk * sizeof(long double));
+			if(!ekCert.weight)
+				NO_MEM_LEFT()
+			for(j = 0 ; j < q.nbColumns ; j++)
+				ekCert.weight[j] = mpq_get_d(q.mat[bestRow][j]);
+		}
+		else
+			ekCert.weight = NULL;
+
+		//We free useless memory.
+		mpq_clears(zero,coef,prodTmp,NULL);
+		for(i = 0 ; i < ekVSVertices.nbRows ; i++)
+		{
+			for(j = 0 ; j < ekVSVertices.nbColumns ; j++)
+				mpq_clear(ekVSVertices.mat[i][j]);
+			free(ekVSVertices.mat[i]);
+		}
+		free(ekVSVertices.mat);
+		for(i = 0 ; i < q.nbRows ; i++)
+		{
+			for(j = 0 ; j < q.nbColumns ; j++)
+				mpq_clear(q.mat[i][j]);
+			free(q.mat[i]);
+		}
 		free(q.mat);
 	}
 
