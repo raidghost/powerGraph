@@ -51,13 +51,23 @@ struct GRAPH_LIST
 	GRAPH_LIST **neighbours;
 };
 
-typedef struct EK_CERT EK_CERT;
-struct EK_CERT
+typedef struct EK_CERT_F2 EK_CERT_F2;
+struct EK_CERT_F2
 {
 	NUPLE** ek;
-	long double* weight;
+	char* weight;
 	unsigned int nbEk;
 	unsigned int nbEltPerEk;//It's the number p.
 };
+
+typedef struct EK_CERT_R EK_CERT_R;
+struct EK_CERT_R
+{
+	NUPLE** ek;
+	mpq_t* weight;
+	unsigned int nbEk;
+	unsigned int nbEltPerEk;//It's the number p.
+};
+
 
 #endif

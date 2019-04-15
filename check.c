@@ -136,33 +136,66 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "We can only look for an edge clique certificate in a power graph. Use \"--makeExp\".\n");
 		else
 		{
-			EK_CERT ekCertificate;
-			ekCertificate = findEkCert(&g, graphExpList, p, field);
-			if(ekCertificate.weight)
-			{//If we have found an edge clique certificate.
-				printf("We found an edge clique certificate !\n");
-				if(verbose >= 1)
-					displayEkCert(&ekCertificate, false);
-				else
-					printf("Use -v to display it.\n");
-				printf("We will now check if this certificate is valid.\n");
-				GRAPH_LIST* center = checkEkCert(graphExpList, &ekCertificate, field);
-				if(center)
-				{
-					printf("This certificate is \e[1mvalid\e[0m ! Its center is : ");
-					displayNuple(&center->v);
-					printf("\n");
+			if(field == 2)
+			{
+				EK_CERT_F2 ekCertificate;
+				ekCertificate = findEkCertF2(&g, graphExpList, p);
+				if(ekCertificate.weight)
+				{//If we have found an edge clique certificate.
+					printf("We found an edge clique certificate !\n");
+					if(verbose >= 1)
+						displayEkCertF2(&ekCertificate, false);
+					else
+						printf("Use -v to display it.\n");
+					printf("We will now check if this certificate is valid.\n");
+					GRAPH_LIST* center = checkEkCertF2(graphExpList, &ekCertificate);
+					if(center)
+					{
+						printf("This certificate is \e[1mvalid\e[0m ! Its center is : ");
+						displayNuple(&center->v);
+						printf("\n");
+					}
+					else
+						printf("Unfortunately, this certificate is \e[1minvalid\e[0m.\n");
 				}
 				else
-					printf("Unfortunately, this certificate is \e[1minvalid\e[0m.\n");
+				{
+					printf("We could not find any edge clique certificate.\n");
+					if(supportMax >= 0)
+						printf("Perhaps you should increase the support (\"--supportMax\").\n");
+				}
+				freeEkCertF2(&ekCertificate);
 			}
 			else
 			{
-				printf("We could not find any edge clique certificate.\n");
-				if(supportMax >= 0)
-					printf("Perhaps you should increase the support (\"--supportMax\").\n");
+				EK_CERT_R ekCertificate;
+				ekCertificate = findEkCertR(&g, graphExpList, p);
+				if(ekCertificate.weight)
+				{//If we have found an edge clique certificate.
+					printf("We found an edge clique certificate !\n");
+					if(verbose >= 1)
+						displayEkCertR(&ekCertificate, false);
+					else
+						printf("Use -v to display it.\n");
+					printf("We will now check if this certificate is valid.\n");
+					GRAPH_LIST* center = checkEkCertR(graphExpList, &ekCertificate);
+					if(center)
+					{
+						printf("This certificate is \e[1mvalid\e[0m ! Its center is : ");
+						displayNuple(&center->v);
+						printf("\n");
+					}
+					else
+						printf("Unfortunately, this certificate is \e[1minvalid\e[0m.\n");
+				}
+				else
+				{
+					printf("We could not find any edge clique certificate.\n");
+					if(supportMax >= 0)
+						printf("Perhaps you should increase the support (\"--supportMax\").\n");
+				}
+				freeEkCertR(&ekCertificate);
 			}
-			freeEkCert(&ekCertificate);
 		}
 	}
 
@@ -264,7 +297,7 @@ int commonDegree(GRAPH *g)
 	return commonDegree;
 }
 
-GRAPH_LIST* checkEkCert(GRAPH_LIST* powerGraph, EK_CERT* ekCert, int field)
+GRAPH_LIST* checkEkCertF2(GRAPH_LIST* powerGraph, EK_CERT_F2* ekCert)
 {//Test wether an edge clique certificate is valid for the given powerGraph. If yes returns a pointer to the center and if not returns NULL.
 	if(!ekCert->weight)
 	{
@@ -281,13 +314,13 @@ GRAPH_LIST* checkEkCert(GRAPH_LIST* powerGraph, EK_CERT* ekCert, int field)
 	}
 	NUPLE* listVerticesOrdered;
 	GRAPH_LIST* center = NULL;
-	long double* listVerticesOrderedWeight;
+	char* listVerticesOrderedWeight;
 	GRAPH_LIST* tmp;
 
 	listVerticesOrdered = (NUPLE*)malloc(nbVerticesPG * sizeof(NUPLE));
-	listVerticesOrderedWeight = (long double*)calloc(nbVerticesPG, nbVerticesPG * sizeof(long double));
+	listVerticesOrderedWeight = (char*)calloc(nbVerticesPG, nbVerticesPG * sizeof(char));
 
-	if(!listVerticesOrdered || ! listVerticesOrderedWeight)
+	if(!listVerticesOrdered || !listVerticesOrderedWeight)
 		NO_MEM_LEFT()
 	
 	tmp = powerGraph;
@@ -311,47 +344,113 @@ GRAPH_LIST* checkEkCert(GRAPH_LIST* powerGraph, EK_CERT* ekCert, int field)
 				return NULL;
 			}
 			else
-				listVerticesOrderedWeight[position] += ekCert->weight[i];
+				listVerticesOrderedWeight[position] = (listVerticesOrderedWeight[position] + ekCert->weight[i]) % 2;
 		}
 	}
 	unsigned int nbZeroEntries = 0;
-	if(field == 0)
+	for(i = 0 ; i < nbVerticesPG ; i++)
 	{
-		for(i = 0 ; i < nbVerticesPG ; i++)
+		if((int)listVerticesOrderedWeight[i] % 2)
 		{
-			if(listVerticesOrderedWeight[i])
+			nbZeroEntries++;
+			if(nbZeroEntries > 1)
 			{
-				nbZeroEntries++;
-				if(nbZeroEntries > 1)
-				{
-					free(listVerticesOrdered);
-					free(listVerticesOrderedWeight);
-					return NULL;
-				}
-				center = searchVertex(powerGraph, listVerticesOrdered[i]);
+				free(listVerticesOrdered);
+				free(listVerticesOrderedWeight);
+				return NULL;
 			}
-		}
-	}
-	else
-	{
-		for(i = 0 ; i < nbVerticesPG ; i++)
-		{
-			if((int)listVerticesOrderedWeight[i] % field)
-			{
-				nbZeroEntries++;
-				if(nbZeroEntries > 1)
-				{
-					free(listVerticesOrdered);
-					free(listVerticesOrderedWeight);
-					return NULL;
-				}
-				center = searchVertex(powerGraph, listVerticesOrdered[i]);
-			}
+			center = searchVertex(powerGraph, listVerticesOrdered[i]);
 		}
 	}
 	if(nbZeroEntries != 1)
 		center = NULL;
 	free(listVerticesOrdered);
+	free(listVerticesOrderedWeight);
+	return center;
+}
+
+GRAPH_LIST* checkEkCertR(GRAPH_LIST* powerGraph, EK_CERT_R* ekCert)
+{//Test wether an edge clique certificate is valid for the given powerGraph. If yes returns a pointer to the center and if not returns NULL.
+	if(!ekCert->weight)
+	{
+		fprintf(stderr, "The weight are not set for this edge clique certificate.\n");
+		return NULL;
+	}
+	unsigned long i,j;
+	int position;
+	unsigned int nbVerticesPG = getNbVertices(powerGraph);
+	if(nbVerticesPG == 0)
+	{
+		fprintf(stderr, "The powerGraph has no vertices.\n");
+		return NULL;
+	}
+	NUPLE* listVerticesOrdered;
+	GRAPH_LIST* center = NULL;
+	mpq_t* listVerticesOrderedWeight;
+	mpq_t zero;
+	GRAPH_LIST* tmp;
+
+	mpq_init(zero);
+
+	listVerticesOrdered = (NUPLE*)malloc(nbVerticesPG * sizeof(NUPLE));
+	listVerticesOrderedWeight = (mpq_t*)malloc(nbVerticesPG * sizeof(mpq_t));
+
+	if(!listVerticesOrdered || !listVerticesOrderedWeight)
+		NO_MEM_LEFT()
+	for(i = 0 ; i < nbVerticesPG ; i++)
+		mpq_init(listVerticesOrderedWeight[i]);
+	
+	tmp = powerGraph;
+	for(i = 0 ; i < nbVerticesPG ; i++)
+	{
+		listVerticesOrdered[i] = tmp->v;
+		tmp = tmp->next;
+	}
+
+	for(i = 0 ; i < ekCert->nbEk ; i++)
+	{
+		for(j = 0 ; j < ekCert->nbEltPerEk ; j++)
+		{
+			position = dichoSearchNupleList(listVerticesOrdered, ekCert->ek[i] + j, 0, nbVerticesPG - 1);
+			if(position == -1)
+			{
+				fprintf(stderr, "The following vertex does not exists in the powerGraph and it should !\n");
+				displayNuple(ekCert->ek[i] + j);
+				free(listVerticesOrdered);
+				mpq_clear(zero);
+				for(i = 0 ; i < nbVerticesPG ; i++)
+					mpq_clear(listVerticesOrderedWeight[i]);
+				free(listVerticesOrderedWeight);
+				return NULL;
+			}
+			else
+				mpq_add(listVerticesOrderedWeight[position], listVerticesOrderedWeight[position], ekCert->weight[i]);
+		}
+	}
+	unsigned int nbZeroEntries = 0;
+	for(i = 0 ; i < nbVerticesPG ; i++)
+	{
+		if(mpq_cmp(listVerticesOrderedWeight[i],zero))
+		{
+			nbZeroEntries++;
+			if(nbZeroEntries > 1)
+			{
+				free(listVerticesOrdered);
+				mpq_clear(zero);
+				for(i = 0 ; i < nbVerticesPG ; i++)
+					mpq_clear(listVerticesOrderedWeight[i]);
+				free(listVerticesOrderedWeight);
+				return NULL;
+			}
+			center = searchVertex(powerGraph, listVerticesOrdered[i]);
+		}
+	}
+	if(nbZeroEntries != 1)
+		center = NULL;
+	free(listVerticesOrdered);
+	mpq_clear(zero);
+	for(i = 0 ; i < nbVerticesPG ; i++)
+		mpq_clear(listVerticesOrderedWeight[i]);
 	free(listVerticesOrderedWeight);
 	return center;
 }

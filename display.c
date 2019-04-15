@@ -96,7 +96,7 @@ void displayGraphList(GRAPH_LIST* g)
 	}
 }
 
-void displayEkCert(EK_CERT* ekCert, bool displayZeroWeight)
+void displayEkCertF2(EK_CERT_F2* ekCert, bool displayZeroWeight)
 {
 	unsigned int i,j;
 	unsigned int nbEkUsedInCert = 0;
@@ -112,9 +112,36 @@ void displayEkCert(EK_CERT* ekCert, bool displayZeroWeight)
 			}
 		}
 		if(displayZeroWeight || ekCert->weight[i])
-			printf("\tweigth = %Lf\n", ekCert->weight[i]);
+			printf("\tweight = %d\n", (int)ekCert->weight[i]);
 		if(ekCert->weight[i])
 			nbEkUsedInCert++;
 	}
 	printf("There are %d edge cliques but only %d are used in this edge clique certificate.\n", ekCert->nbEk, nbEkUsedInCert);
+}
+
+void displayEkCertR(EK_CERT_R* ekCert, bool displayZeroWeight)
+{
+	unsigned int i,j;
+	unsigned int nbEkUsedInCert = 0;
+	mpq_t zero;
+
+	mpq_init(zero);
+	for(i = 0 ; i < ekCert->nbEk ; i++)
+	{
+		for(j = 0 ; j < ekCert->nbEltPerEk ; j++)
+		{
+			if(displayZeroWeight || mpq_cmp(ekCert->weight[i], zero))
+			{
+				displayNuple(ekCert->ek[i] + j);
+				if(j < ekCert->nbEltPerEk - 1)
+					printf("---");
+			}
+		}
+		if(displayZeroWeight || mpq_cmp(ekCert->weight[i], zero))
+			gmp_printf("\tweight %Qd\n", ekCert->weight[i]);
+		if(mpq_cmp(ekCert->weight[i], zero))
+			nbEkUsedInCert++;
+	}
+	printf("There are %d edge cliques but only %d are used in this edge clique certificate.\n", ekCert->nbEk, nbEkUsedInCert);
+	mpq_clear(zero);
 }

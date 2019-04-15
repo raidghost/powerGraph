@@ -146,23 +146,46 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "We can only look for an edge clique certificate in a power graph. Use \"--makeExp\".\n");
 		else
 		{
-			EK_CERT ekCertificate;
-			ekCertificate = findEkCert(&g, graphExpList, p, field);
-			if(ekCertificate.weight)
-			{//If we have found an edge clique certificate.
-				printf("We found an edge clique certificate !\n");
-				if(verbose >= 1)
-					displayEkCert(&ekCertificate, false);
+			if(field == 2)
+			{
+				EK_CERT_F2 ekCertificate;
+				ekCertificate = findEkCertF2(&g, graphExpList, p);
+				if(ekCertificate.weight)
+				{//If we have found an edge clique certificate.
+					printf("We found an edge clique certificate !\n");
+					if(verbose >= 1)
+						displayEkCertF2(&ekCertificate, false);
+					else
+						printf("Use -v to display it.\n");
+				}
 				else
-					printf("Use -v to display it.\n");
+				{
+					printf("We could not find any edge clique certificate.\n");
+					if(supportMax >= 0)
+						printf("Perhaps you should increase the support (\"--supportMax\").\n");
+				}
+				freeEkCertF2(&ekCertificate);
 			}
 			else
 			{
-				printf("We could not find any edge clique certificate.\n");
-				if(supportMax >= 0)
-					printf("Perhaps you should increase the support (\"--supportMax\").\n");
+				EK_CERT_R ekCertificate;
+				ekCertificate = findEkCertR(&g, graphExpList, p);
+				if(ekCertificate.weight)
+				{//If we have found an edge clique certificate.
+					printf("We found an edge clique certificate !\n");
+					if(verbose >= 1)
+						displayEkCertR(&ekCertificate, false);
+					else
+						printf("Use -v to display it.\n");
+				}
+				else
+				{
+					printf("We could not find any edge clique certificate.\n");
+					if(supportMax >= 0)
+						printf("Perhaps you should increase the support (\"--supportMax\").\n");
+				}
+				freeEkCertR(&ekCertificate);
 			}
-			freeEkCert(&ekCertificate);
 		}
 	}
 
