@@ -9,8 +9,13 @@ unsigned long rankF2(MATRIX_F2 *mat)
 {//This function computes the rank in F2 of a matrix AND CHANGES THIS MATRIX !
 	unsigned long i,j,k,max;
 	unsigned long rank = 0;
-	unsigned long firstNonZeroEntry = 0;
+	unsigned long firstNonZeroEntry = 0, dimMin;
 	char *tmp = NULL;
+
+	if(mat->nbRows < mat->nbColumns)
+		dimMin = mat->nbRows;
+	else
+		dimMin = mat->nbColumns;
 
 	//We start Gauss pivoting
 	for(i = 0 ; i < mat->nbRows ; i++)
@@ -49,7 +54,7 @@ unsigned long rankF2(MATRIX_F2 *mat)
 			mat->mat[max] = tmp;
 		}
 		rank++;
-		if(rank == mat->nbRows || rank == mat->nbColumns)
+		if(rank == dimMin)
 			return rank;
 		//We xor every line under line i that needs to be xored.
 		for(j = i + 1 ; j < mat->nbRows ; j++)

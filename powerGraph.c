@@ -8,8 +8,6 @@
 #include "tools.h"
 #include "rank.h"
 
-#include "display.h"
-
 
 GRAPH_LIST* genPowerGraph(GRAPH* g, unsigned int p, int supportMax)
 {
@@ -283,6 +281,7 @@ EK_CERT_F2 findEkCertF2(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p)
 
 //--------- Start Gauss
 	MATRIX_F2 q;
+	bool nullRow;
 	unsigned long max, firstNonZeroEntry = 0;
 	char *tmp2 = NULL;
 
@@ -320,14 +319,19 @@ EK_CERT_F2 findEkCertF2(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p)
 			}
 		}
 		//We test wether the maximum line is zero and retreive the first non zero entry.
+		nullRow = true;
 		for(j = 0 ; j < ekVSVertices.nbColumns ; j++)
 		{
 			if(ekVSVertices.mat[max][j] != 0)
 			{
+				nullRow = false;
 				firstNonZeroEntry = j;
 				break;
 			}
 		}
+		if(nullRow)
+		//There is nothing more to do.
+			goto end_gauss;
 		if(max > i)
 		{//We put the max in position i.
 			tmp2 = ekVSVertices.mat[i];
@@ -340,9 +344,9 @@ EK_CERT_F2 findEkCertF2(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p)
 			q.mat[max] = tmp2;
 		}
 		//We xor every line under and above line i that needs to be xored.
-		for(j = i + 1 ; j < ekVSVertices.nbRows ; j++)
+		for(j = 0 ; j < ekVSVertices.nbRows ; j++)
 		{
-			if(ekVSVertices.mat[j][firstNonZeroEntry] != 0)
+			if(j != i && ekVSVertices.mat[j][firstNonZeroEntry] != 0)
 			{//We have found a non zero coef so we must xor line j !
 				for(k = 0 ; k < ekVSVertices.nbColumns ; k++)
 					ekVSVertices.mat[j][k] = (ekVSVertices.mat[j][k] + ekVSVertices.mat[i][k]) % 2;
@@ -352,6 +356,7 @@ EK_CERT_F2 findEkCertF2(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p)
 			}
 		}
 	}
+	end_gauss:;
 //--------- End Gauss
 
 	unsigned int nb1OnThisRow, nb1OnQRow, nb1OnQRowOld = q.nbColumns + 1, bestRow = q.nbRows + 1;
@@ -570,7 +575,7 @@ EK_CERT_R findEkCertR(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p)
 		mpq_set_si(q.mat[i][i], 1, 1);
 	}
 
-	//We start Gauss pivoting
+	//We start Gauss Jordan pivoting
 	unsigned long pivotRow;
 	mpq_t zero,coef,prodTmp;
 	mpq_t *tmp2 = NULL;
@@ -606,10 +611,10 @@ EK_CERT_R findEkCertR(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p)
 		}
 		if(!mpq_equal(ekVSVertices.mat[i][j],zero))
 		{//Otherwise this line has only zeros.
-			//We perform, when needed, the gaussian elimination.
-			for(k = i+1 ; k < ekVSVertices.nbRows ; k++)
+			//We perform, when needed, the Gauss Jordan elimination.
+			for(k = 0 ; k < ekVSVertices.nbRows ; k++)
 			{
-				if(!mpq_equal(ekVSVertices.mat[k][j],zero))
+				if(k != i && !mpq_equal(ekVSVertices.mat[k][j],zero))
 				{
 					mpq_div(coef,ekVSVertices.mat[k][j],ekVSVertices.mat[i][j]);
 					for(l = j ; l < ekVSVertices.nbColumns ; l++)
