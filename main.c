@@ -133,9 +133,12 @@ int main(int argc, char *argv[])
 	if(makeExp)
 	{
 		graphExpList = genPowerGraph(&g, p, supportMax);
-		if(verbose >= 3)
-			displayGraphList(graphExpList);
 		graphExp = graphList2Mat(graphExpList);
+		if(verbose >= 3)
+		{
+			displayGraphList(graphExpList);
+			displayGraph(&graphExp);
+		}
 		if(write2File)
 			writeGraph2File(&graphExp, file2Write);
 	}

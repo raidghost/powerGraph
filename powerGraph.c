@@ -463,6 +463,7 @@ EK_CERT_R findEkCertR(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p)
 
 	for(l = 0 ; l < nbVerticesPG ; l++)
 	{
+		printf("On gère le sommet n° %ld sur %d.\n", l+1, nbVerticesPG);
 		for(i = 0 ; i < g->nbVertices ; i++)
 		{
 			for(j = i+1 ; j < g->nbVertices ; j++)
@@ -584,6 +585,7 @@ EK_CERT_R findEkCertR(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p)
 
 	i = 0;
 	j = 0;
+	printf("La matrice à  réduire est de taille %ld x %ld.\n", ekVSVertices.nbRows, ekVSVertices.nbColumns);
 	while(i < ekVSVertices.nbRows && j < ekVSVertices.nbColumns)
 	{
 		if(mpq_equal(ekVSVertices.mat[i][j],zero))
