@@ -7,9 +7,7 @@
 
 unsigned long rankF2(MATRIX_F2 *mat)
 {//This function computes the rank in F2 of a matrix AND CHANGES THIS MATRIX !
-	unsigned long i,j,k,max;
-	unsigned long rank = 0;
-	unsigned long firstNonZeroEntry = 0, dimMin;
+	unsigned long i, j, k, l, pivotRow, dimMin, rank;
 	char *tmp = NULL;
 
 	if(mat->nbRows < mat->nbColumns)
@@ -17,54 +15,49 @@ unsigned long rankF2(MATRIX_F2 *mat)
 	else
 		dimMin = mat->nbColumns;
 
-	//We start Gauss pivoting
-	for(i = 0 ; i < mat->nbRows ; i++)
+	//We start Gauss pivoting.
+	i = 0;
+	j = 0;
+	rank = 0;
+	while(i < mat->nbRows && j < mat->nbColumns)
 	{
-		//We look for the row corresponding to the maximum binary integer.
-		max = i;
-		for(j = max + 1 ; j < mat->nbRows ; j++)
-		{
-			for(k = 0 ; k < mat->nbColumns ; k++)
+		if(!mat->mat[i][j])
+		{//We look for an other pivot.
+			pivotRow = i;
+			//We try on column j.
+			for(k = i+1 ; k < mat->nbRows ; k++)
 			{
-				if(mat->mat[j][k] < mat->mat[max][k])
-					break;
-				else if(mat->mat[j][k] > mat->mat[max][k])
+				if(mat->mat[k][j])
 				{
-					max = j;
+					pivotRow = k;
 					break;
 				}
 			}
+			if(pivotRow > i)
+			{//We put the pivot line at position i.
+				tmp = mat->mat[i];
+				mat->mat[i] = mat->mat[pivotRow];
+				mat->mat[pivotRow] = tmp;
+			}
 		}
-		//We test wether the maximum line is zero and retreive the first non zero entry.
-		for(j = 0 ; j < mat->nbColumns ; j++)
-		{
-			if(mat->mat[max][j] != 0)
-			{
-				firstNonZeroEntry = j;
+		if(mat->mat[i][j])
+		{//Otherwise this line has only zeros.
+			rank++;
+			if(rank == dimMin)
 				break;
+			//We perform, when needed, the gaussian elimination.
+			for(k = i+1 ; k < mat->nbRows ; k++)
+			{
+				if(mat->mat[k][j])
+				{
+					for(l = j ; l < mat->nbColumns ; l++)
+						mat->mat[k][l] = (mat->mat[k][l] + mat->mat[i][l]) % 2;
+				}
 			}
+			//Since we have performed gaussian elimination, we increment both i and j (see below).
+			i++;
 		}
-		if(j == mat->nbColumns)
-		//If the maximum line is zero then we have the rank.
-			return rank;
-		else if(max > i)
-		{//We put the max in position i.
-			tmp = mat->mat[i];
-			mat->mat[i] = mat->mat[max];
-			mat->mat[max] = tmp;
-		}
-		rank++;
-		if(rank == dimMin)
-			return rank;
-		//We xor every line under line i that needs to be xored.
-		for(j = i + 1 ; j < mat->nbRows ; j++)
-		{
-			if(mat->mat[j][firstNonZeroEntry] != 0)
-			{//We have found a non zero coef so we must xor line j !
-				for(k = 0 ; k < mat->nbColumns ; k++)
-					mat->mat[j][k] = (mat->mat[j][k] + mat->mat[i][k]) % 2;
-			}
-		}
+		j++;
 	}
 	return rank;
 }
