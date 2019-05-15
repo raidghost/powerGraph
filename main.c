@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
 {
 	int i;
 	bool makeExp = false, ekCert = false, write2File = false, testHomo = false;
-	int supportMax = -1, verbose = 0, field = 2, n = 2, p = 2;
+	int degreeMax = -1, supportMax = -1, verbose = 0, field = 2, n = 2, p = 2;
 	char *file2Write = NULL, *tmp;
 	GRAPH g;
 	GRAPH graphExp;
@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
 	srand(time(NULL));
 	if(argc < 3)
 	{
-		fprintf(stderr, "Usage : prog [--makeExp=?] [--supportMax=?] [--ekCert] [--write=file2Write] [--testHomo=?] [-v|-vv|-vvv] GRAPH_FILE field\nPossible values for field are : F2, R\n");
+		fprintf(stderr, "Usage : prog [--makeExp=?] [--supportMax=?] [--degreMax=?] [--ekCert] [--write=file2Write] [--testHomo=?] [-v|-vv|-vvv] GRAPH_FILE field\nPossible values for field are : F2, R\n");
 		return EXIT_FAILURE;
 	}
 	for(i = 1 ; i < argc - 2; i++)
@@ -57,6 +57,19 @@ int main(int argc, char *argv[])
 				supportMax = -1;
 			}
 		}
+		else if(strncmp(argv[i], "--degreeMax", 11) == 0)
+		{
+			strtok(argv[i], "=");
+			tmp = strtok(NULL, "=");
+			if(tmp)
+				degreeMax = string2Int(tmp);
+			else
+			{
+				fprintf(stderr, "The value of degreeMax can be any non negative integer. If it is strictly negative, then we won't bound the degree. We set it to -1 by default.\n");
+				degreeMax = -1;
+			}
+		}
+
 		else if(strcmp(argv[i], "--ekCert") == 0)
 			ekCert = true;
 		else if(strncmp(argv[i], "--write", 7) == 0)
@@ -132,7 +145,7 @@ int main(int argc, char *argv[])
 
 	if(makeExp)
 	{
-		graphExpList = genPowerGraph(&g, p, supportMax);
+		graphExpList = genPowerGraph(&g, p, supportMax, degreeMax);
 		graphExp = graphList2Mat(graphExpList);
 		if(verbose >= 3)
 		{
@@ -172,7 +185,7 @@ int main(int argc, char *argv[])
 			else
 			{
 				EK_CERT_R ekCertificate;
-				ekCertificate = findEkCertR(&g, graphExpList, p);
+				ekCertificate = findEkCertR(&g, graphExpList, p, verbose);
 				if(ekCertificate.weight)
 				{//If we have found an edge clique certificate.
 					printf("We found an edge clique certificate !\n");

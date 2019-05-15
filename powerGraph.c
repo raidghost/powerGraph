@@ -9,16 +9,18 @@
 #include "rank.h"
 
 
-GRAPH_LIST* genPowerGraph(GRAPH* g, unsigned int p, int supportMax)
+GRAPH_LIST* genPowerGraph(GRAPH* g, unsigned int p, int supportMax, int degreeMax)
 {
 	if(g == NULL)
 		return NULL;
-	if(supportMax == -1 || (unsigned int)supportMax > g->nbVertices)
+	if(supportMax == -1)
 		supportMax = g->nbVertices;
+	if(degreeMax == -1)
+		degreeMax = g->nbVertices * (p-1);
 
 	unsigned long i,j,k;
 	GRAPH_LIST* powerGraph = NULL;
-	unsigned int nonZeroEntriesCurrentVertex = 0;
+	int sumCurrentVertex, degreeCurrentVertex, supportCurrentVertex;
 	unsigned long nbVerticesTotal = pow(p,g->nbVertices - 1);
 	NUPLE currentVertex, vertex2Add;
 
@@ -30,44 +32,47 @@ GRAPH_LIST* genPowerGraph(GRAPH* g, unsigned int p, int supportMax)
 		NO_MEM_LEFT()
 
 	/*Now we will generate all the nuple with bounded support. In the end,
-	we will add a coefficient so that the sum is 1. Doing so, we will create
+	we will add a coefficient so that the sum is 0. Doing so, we will create
 	every vertices of p^G thats sums to 1 and so that their support is bounded by
 	supportMax.*/
 	for(i = 0 ; i < nbVerticesTotal ; i++)
 	{
-		if(nonZeroEntriesCurrentVertex < (unsigned int)supportMax)
+		for(j = 0 ; j < g->nbVertices ; j++)
 		{
-			for(j = 0 ; j <= currentVertex.length ; j++)
+			sumCurrentVertex = 0;
+			degreeCurrentVertex = 0;
+			supportCurrentVertex = 0;
+			for(k = 0 ; k < j ; k++)
 			{
-				unsigned int sumCurrentVertex = 0;
-				for(k = 0 ; k < j ; k++)
-				{
-					vertex2Add.tab[k] = currentVertex.tab[k];
-					sumCurrentVertex += currentVertex.tab[k];
-				}
-				for(k = j+1 ; k < vertex2Add.length ; k++)
-				{
-					vertex2Add.tab[k] = currentVertex.tab[k-1];
-					sumCurrentVertex += currentVertex.tab[k-1];
-				}
-				//We consider the connected component of p^G that sums to 1 (mod p).
-				vertex2Add.tab[j] = (p+1 - sumCurrentVertex % p) % p;
-				powerGraph = addVertex(powerGraph, &vertex2Add);
+				vertex2Add.tab[k] = currentVertex.tab[k];
+				sumCurrentVertex += currentVertex.tab[k];
+				degreeCurrentVertex += currentVertex.tab[k];
+				if(currentVertex.tab[k] != 0)
+					supportCurrentVertex++;
 			}
+			for(k = j+1 ; k < g->nbVertices ; k++)
+			{
+				vertex2Add.tab[k] = currentVertex.tab[k-1];
+				sumCurrentVertex += currentVertex.tab[k-1];
+				degreeCurrentVertex += currentVertex.tab[k-1];
+				if(currentVertex.tab[k-1] != 0)
+					supportCurrentVertex++;
+			}
+			//We consider the connected component of p^G that sums to 0 (mod p).
+			vertex2Add.tab[j] = (p - sumCurrentVertex % p) % p;
+			degreeCurrentVertex += vertex2Add.tab[j];
+			if(vertex2Add.tab[j] != 0)
+				supportCurrentVertex++;
+			//We add the vertex only if the degree is less that degreeMax.
+			if(degreeCurrentVertex <= degreeMax && supportCurrentVertex <= supportMax)
+				powerGraph = addVertex(powerGraph, &vertex2Add);
 		}
 		//We add 1 to currentVertex.
 		for(j = 0 ; j < currentVertex.length && currentVertex.tab[j] == p-1 ; j++);
 		if(j < currentVertex.length)
-		{
-			if(currentVertex.tab[j] == 0)
-				nonZeroEntriesCurrentVertex++;
 			currentVertex.tab[j]++;
-		}
 		for(k = 0 ; k < j ; k++)
-		{
 			currentVertex.tab[k] = 0;
-			nonZeroEntriesCurrentVertex--;
-		}
 	}
 	free(currentVertex.tab);
 	free(vertex2Add.tab);
@@ -78,7 +83,7 @@ GRAPH_LIST* genPowerGraph(GRAPH* g, unsigned int p, int supportMax)
 	unsigned int nbSameEntries = 0;
 	long sumDiff = 0;
 	GRAPH_LIST *u, *v, *tmp = powerGraph;
-	//We retrieve all the verticies for the graph list once for all (performances issues).
+	//We retrieve all the vertices for the graph list once for all (performances issues).
 	GRAPH_LIST** vertices = (GRAPH_LIST**)malloc(nbVertices * sizeof(GRAPH_LIST*));
 	if(!vertices)
 		NO_MEM_LEFT()
@@ -411,7 +416,7 @@ EK_CERT_F2 findEkCertF2(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p)
 	return ekCert;
 }
 
-EK_CERT_R findEkCertR(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p)
+EK_CERT_R findEkCertR(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p, int verbose)
 {
 	/*An edge clique is a list of list of nuple. Each nuple represent a vertex.
 	Each list of nuples must be of size p.*/
@@ -463,7 +468,8 @@ EK_CERT_R findEkCertR(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p)
 
 	for(l = 0 ; l < nbVerticesPG ; l++)
 	{
-		printf("On gère le sommet n° %ld sur %d.\n", l+1, nbVerticesPG);
+		if(verbose >= 2)
+			printf("Vertex %ld / %d.\n", l+1, nbVerticesPG);
 		for(i = 0 ; i < g->nbVertices ; i++)
 		{
 			for(j = i+1 ; j < g->nbVertices ; j++)
@@ -585,7 +591,8 @@ EK_CERT_R findEkCertR(GRAPH* g, GRAPH_LIST* powerGraph, unsigned int p)
 
 	i = 0;
 	j = 0;
-	printf("La matrice à  réduire est de taille %ld x %ld.\n", ekVSVertices.nbRows, ekVSVertices.nbColumns);
+	if(verbose >= 2)
+		printf("The matrix to reduce is of size %ld x %ld.\n", ekVSVertices.nbRows, ekVSVertices.nbColumns);
 	while(i < ekVSVertices.nbRows && j < ekVSVertices.nbColumns)
 	{
 		if(mpq_equal(ekVSVertices.mat[i][j],zero))

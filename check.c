@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
 	int i;
 	bool makeExp = false, ekCert = false, checkNbVertices = false, checkNbEdges = false, checkCommonDegree = false;
 	unsigned int nbVerticesExpected = 0, nbEdgesExpected = 0;
-	int supportMax = -1, verbose = 0, field = 2, p = 2, commonDegreeExpected = 0;
+	int degreeMax = -1, supportMax = -1, verbose = 0, field = 2, p = 2, commonDegreeExpected = 0;
 	char *tmp;
 	GRAPH g;
 	GRAPH graphExp;
@@ -52,6 +52,18 @@ int main(int argc, char *argv[])
 			{
 				fprintf(stderr, "The value of supportMax can be any non negative integer. If it is strictly negative, then we won't bound the support. We set it to -1 by default.\n");
 				supportMax = -1;
+			}
+		}
+		else if(strncmp(argv[i], "--degreeMax", 11) == 0)
+		{
+			strtok(argv[i], "=");
+			tmp = strtok(NULL, "=");
+			if(tmp)
+				degreeMax = string2Int(tmp);
+			else
+			{
+				fprintf(stderr, "The value of degreeMax can be any non negative integer. If it is strictly negative, then we won't bound the degree. We set it to -1 by default.\n");
+				degreeMax = -1;
 			}
 		}
 		else if(strcmp(argv[i], "--ekCert") == 0)
@@ -124,7 +136,7 @@ int main(int argc, char *argv[])
 
 	if(makeExp)
 	{
-		graphExpList = genPowerGraph(&g, p, supportMax);
+		graphExpList = genPowerGraph(&g, p, supportMax, degreeMax);
 		if(verbose >= 3)
 			displayGraphList(graphExpList);
 		graphExp = graphList2Mat(graphExpList);
@@ -169,7 +181,7 @@ int main(int argc, char *argv[])
 			else
 			{
 				EK_CERT_R ekCertificate;
-				ekCertificate = findEkCertR(&g, graphExpList, p);
+				ekCertificate = findEkCertR(&g, graphExpList, p, verbose);
 				if(ekCertificate.weight)
 				{//If we have found an edge clique certificate.
 					printf("We found an edge clique certificate !\n");
@@ -206,14 +218,14 @@ int main(int argc, char *argv[])
 			if(graphExp.nbVertices != nbVerticesExpected)
 				printf("\e[1mError\e[0m : The graph %d^G has %ld vertices instead of %d\n", p, graphExp.nbVertices, nbVerticesExpected);
 			else
-				printf("The number of vertices of %d^G is \e[1mOK\e[0m.\n", p);
+				printf("The number of vertices of %d^G is \e[1mOK\e[0m (%ld).\n", p, graphExp.nbVertices);
 		}
 		else
 		{
 			if(g.nbVertices != nbVerticesExpected)
 				printf("\e[1mError\e[0m : The graph G has %ld vertices instead of %d\n", g.nbVertices, nbVerticesExpected);
 			else
-				printf("The number of vertices of G is \e[1mOK\e[0m.\n");
+				printf("The number of vertices of G is \e[1mOK\e[0m (%ld).\n", g.nbVertices);
 		}
 	}
 
@@ -225,7 +237,7 @@ int main(int argc, char *argv[])
 			if(nbEdgesExpected != nbEdgesG)
 				printf("\e[1mError\e[0m : The graph %d^G has %d edges instead of %d\n", p, nbEdgesG, nbEdgesExpected);
 			else
-				printf("The number of edges of %d^G is \e[1mOK\e[0m.\n", p);
+				printf("The number of edges of %d^G is \e[1mOK\e[0m (%d).\n", p, nbEdgesG);
 		}
 		else
 		{
@@ -233,7 +245,7 @@ int main(int argc, char *argv[])
 			if(nbEdgesExpected != nbEdgesG)
 				printf("\e[1mError\e[0m : The graph G has %d edges instead of %d\n", nbEdgesG, nbEdgesExpected);
 			else
-				printf("The number of edges of G is \e[1mOK\e[0m.\n");
+				printf("The number of edges of G is \e[1mOK\e[0m (%d).\n", nbEdgesG);
 		}
 	}
 
